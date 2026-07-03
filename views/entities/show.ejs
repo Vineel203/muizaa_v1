@@ -1,0 +1,67 @@
+<div class="page-header mb-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+      <li class="breadcrumb-item"><a href="/bookings">Bookings</a></li>
+      <li class="breadcrumb-item active"><%= config.label %></li>
+    </ol>
+  </nav>
+  <h1 class="page-title"><%= entity[config.nameField] %></h1>
+  <p class="text-muted"><%= config.label %> Details</p>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="info-card h-100">
+      <span class="info-label">Total Trips</span>
+      <span class="info-value"><%= stats.totalTrips %></span>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="info-card h-100">
+      <span class="info-label">Total Freight</span>
+      <span class="info-value">₹<%= Number(stats.totalFreight || 0).toLocaleString('en-IN') %></span>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="info-card h-100">
+      <span class="info-label">Current Bookings</span>
+      <span class="info-value"><%= stats.currentBookings %></span>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header"><i class="bi bi-info-circle me-2"></i>Entity Details</div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3"><%= config.label %></dt>
+      <dd class="col-sm-9"><%= entity[config.nameField] %></dd>
+      <% config.extraFields.forEach(function(field) { %>
+        <% if (entity[field]) { %>
+          <dt class="col-sm-3"><%= field.charAt(0).toUpperCase() + field.slice(1) %></dt>
+          <dd class="col-sm-9"><%= entity[field] %></dd>
+        <% } %>
+      <% }); %>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-truck me-2"></i>Current Bookings</span>
+    <span class="badge bg-primary"><%= currentBookings.length %></span>
+  </div>
+  <div class="card-body p-0">
+    <%- include('../partials/booking-table-mini', { bookings: currentBookings }) %>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-clock-history me-2"></i>Previous Bookings</span>
+    <span class="badge bg-secondary"><%= previousBookings.length %></span>
+  </div>
+  <div class="card-body p-0">
+    <%- include('../partials/booking-table-mini', { bookings: previousBookings }) %>
+  </div>
+</div>

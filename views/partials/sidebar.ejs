@@ -1,0 +1,20 @@
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <i class="bi bi-truck"></i>
+    <span><%= appName %></span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/dashboard" class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a href="/bookings" class="nav-link <%= currentPath.startsWith('/bookings') ? 'active' : '' %>">
+      <i class="bi bi-journal-text"></i> Bookings
+    </a>
+    <a href="/bookings/new" class="nav-link <%= currentPath === '/bookings/new' ? 'active' : '' %>">
+      <i class="bi bi-plus-circle"></i> New Entry
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <small class="text-muted">v1.0.0</small>
+  </div>
+</aside>

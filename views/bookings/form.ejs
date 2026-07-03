@@ -1,0 +1,31 @@
+<%
+  const b = booking || {};
+  const ro = typeof readOnly !== 'undefined' && readOnly;
+  const formAction = isEdit ? '/bookings/' + b.id : '/bookings';
+%>
+
+<div class="page-header mb-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+      <li class="breadcrumb-item"><a href="/bookings">Bookings</a></li>
+      <li class="breadcrumb-item active"><%= isEdit ? 'Edit' : 'New Entry' %></li>
+    </ol>
+  </nav>
+  <h1 class="page-title"><%= title %></h1>
+</div>
+
+<form method="POST" action="<%= formAction %>" id="bookingForm">
+  <%- include('../partials/booking-sections', { booking: b, readOnly: ro, editable: !ro }) %>
+
+  <% if (!ro) { %>
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="bi bi-check-lg me-1"></i> Save Booking
+      </button>
+      <a href="<%= isEdit ? '/bookings/' + b.id : '/bookings' %>" class="btn btn-outline-secondary btn-lg">Cancel</a>
+    </div>
+  <% } %>
+</form>
+
+<script src="/js/autocomplete.js"></script>
+<script src="/js/booking-form.js"></script>

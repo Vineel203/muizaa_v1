@@ -1,0 +1,30 @@
+<div class="table-responsive">
+  <% if (bookings && bookings.length) { %>
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Booking ID</th>
+          <th>Stage</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Rate</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% bookings.forEach(function(b) { %>
+          <tr style="cursor:pointer" onclick="window.location='/bookings/<%= b.id %>'">
+            <td><%= b.bookingId || '—' %></td>
+            <td><%- include('./stage-badge', { stage: b.stage }) %></td>
+            <td><%= b.fromLocationName || '—' %></td>
+            <td><%= b.toLocationName || '—' %></td>
+            <td><%= b.rate != null ? '₹' + Number(b.rate).toLocaleString('en-IN') : '—' %></td>
+            <td><%= formatDateTime(b.updatedAt) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <div class="p-4 text-center text-muted">No bookings found.</div>
+  <% } %>
+</div>

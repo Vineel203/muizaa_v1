@@ -1,1 +1,111 @@
-This is Readme
+# Muizaa Logistics
+
+Production-quality logistics tracking web application built with Node.js, Express, EJS, PostgreSQL, and Firebase.
+
+## Architecture
+
+```
+/controllers     HTTP request handlers
+/routes          Route definitions only
+/services        Business logic
+/repositories    Data access (swappable datastore)
+/middlewares     Auth, validation, errors
+/views           EJS templates
+/public          Static assets
+/config          App, DB, session, permissions, DI container
+/models          Domain model definitions
+/utils           Helpers, logger, DB pool
+/database        SQL schema
+/scripts         Migration and seed utilities
+```
+
+## Prerequisites
+
+- Node.js 20+
+- PostgreSQL (Firebase SQL / Cloud SQL)
+- Firebase CLI (for deployment)
+
+## Setup
+
+1. **Install dependencies**
+
+```bash
+npm install
+```
+
+2. **Configure environment**
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your PostgreSQL connection string and session secret.
+
+3. **Run database migration**
+
+```bash
+npm run migrate
+```
+
+4. **Seed admin user**
+
+```bash
+npm run seed
+```
+
+Default credentials (override via env):
+- Email: `admin@muizaa.com`
+- Password: `Admin@123`
+
+5. **Start development server**
+
+```bash
+npm run dev
+```
+
+Visit `http://localhost:3000` — you will be redirected to login.
+
+## Firebase Deployment
+
+1. Update `.firebaserc` with your Firebase project ID.
+
+2. Set environment variables for Cloud Functions:
+
+```bash
+firebase functions:secrets:set DATABASE_URL
+firebase functions:secrets:set SESSION_SECRET
+```
+
+3. Deploy:
+
+```bash
+firebase deploy
+```
+
+Static assets are served via Firebase Hosting. All dynamic routes are handled by the `api` Cloud Function.
+
+## Booking Workflow
+
+```
+Parking Lot → On Road → Unload → Done → Archived
+```
+
+- Parking lot entries have no booking ID
+- Booking ID is generated on transition to **On Road**
+- Format: `MYYYYMMSSS` (e.g. `M202607001`)
+
+## Features
+
+- Session-based auth with remember me
+- Role-ready permissions (Admin, Employee, Finance)
+- Dashboard with clickable stat cards
+- Server-side DataTables for bookings
+- Collapsible booking detail sections
+- Auto-created master data (creatable autocomplete)
+- Entity relation pages (driver, truck, etc.)
+- Full booking edit history / timeline
+- Stage transition validation
+
+## Repository Pattern
+
+To migrate from PostgreSQL to Firestore or another database, implement new repository classes with the same interface and update `config/container.js`.

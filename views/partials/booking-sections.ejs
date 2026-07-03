@@ -1,0 +1,453 @@
+<%
+  const b = booking || {};
+  const ro = typeof readOnly !== 'undefined' && readOnly;
+  const isEditable = typeof editable !== 'undefined' ? editable : false;
+  const disabled = ro && !isEditable;
+%>
+
+<div class="accordion booking-accordion" id="bookingAccordion">
+  <!-- General Information -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sectionGeneral">
+        <i class="bi bi-info-circle me-2"></i> General Information
+      </button>
+    </h2>
+    <div id="sectionGeneral" class="accordion-collapse collapse show" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Booking ID</label>
+            <input type="text" class="form-control" value="<%= b.bookingId || 'Generated on On Road' %>" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Stage</label>
+            <input type="text" class="form-control" value="<%= STAGE_LABELS[b.stage] || b.stage || 'Parking Lot' %>" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Serial Number</label>
+            <input type="text" name="serialNumber" class="form-control" value="<%= b.serialNumber || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Invoice Number</label>
+            <input type="text" name="invoiceNumber" class="form-control" value="<%= b.invoiceNumber || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Courier</label>
+            <input type="text" name="courier" class="form-control" value="<%= b.courier || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pickup Details -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionPickup">
+        <i class="bi bi-geo-alt me-2"></i> Pickup Details
+      </button>
+    </h2>
+    <div id="sectionPickup" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">From Location</label>
+            <% if (disabled) { %>
+              <% if (b.fromLocationId) { %><a href="/entities/location/<%= b.fromLocationId %>"><%= b.fromLocationName %></a><% } else { %>—<% } %>
+              <input type="hidden" name="fromLocation" value="<%= b.fromLocationName || '' %>">
+            <% } else { %>
+              <input type="text" name="fromLocation" class="form-control autocomplete-input"
+                     data-type="location" value="<%= b.fromLocationName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Consignor</label>
+            <% if (disabled) { %>
+              <% if (b.consignorId) { %><a href="/entities/consignor/<%= b.consignorId %>"><%= b.consignorName %></a><% } else { %>—<% } %>
+            <% } else { %>
+              <input type="text" name="consignor" class="form-control autocomplete-input"
+                     data-type="consignor" value="<%= b.consignorName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delivery Details -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionDelivery">
+        <i class="bi bi-geo-alt-fill me-2"></i> Delivery Details
+      </button>
+    </h2>
+    <div id="sectionDelivery" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">To Location</label>
+            <% if (disabled) { %>
+              <% if (b.toLocationId) { %><a href="/entities/location/<%= b.toLocationId %>"><%= b.toLocationName %></a><% } else { %>—<% } %>
+            <% } else { %>
+              <input type="text" name="toLocation" class="form-control autocomplete-input"
+                     data-type="location" value="<%= b.toLocationName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Consignee</label>
+            <% if (disabled) { %>
+              <% if (b.consigneeId) { %><a href="/entities/consignee/<%= b.consigneeId %>"><%= b.consigneeName %></a><% } else { %>—<% } %>
+            <% } else { %>
+              <input type="text" name="consignee" class="form-control autocomplete-input"
+                     data-type="consignee" value="<%= b.consigneeName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Recipient Details</label>
+            <textarea name="recipientDetails" class="form-control" rows="2" <%= disabled ? 'readonly' : '' %>><%= b.recipientDetails || '' %></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Information -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionVehicle">
+        <i class="bi bi-truck me-2"></i> Vehicle Information
+      </button>
+    </h2>
+    <div id="sectionVehicle" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Transporter</label>
+            <% if (disabled) { %>
+              <% if (b.transporterId) { %><a href="/entities/transporter/<%= b.transporterId %>"><%= b.transporterName %></a><% } else { %>—<% } %>
+            <% } else { %>
+              <input type="text" name="transporter" class="form-control autocomplete-input"
+                     data-type="transporter" value="<%= b.transporterName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Truck Number</label>
+            <% if (disabled) { %>
+              <% if (b.truckId) { %><a href="/entities/truck/<%= b.truckId %>"><%= b.truckNumber %></a><% } else { %>—<% } %>
+            <% } else { %>
+              <input type="text" name="truckNumber" class="form-control autocomplete-input"
+                     data-type="truck" value="<%= b.truckNumber || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Capacity</label>
+            <input type="number" step="0.01" name="capacity" class="form-control"
+                   value="<%= b.capacity || b.truckCapacity || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Driver Information -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionDriver">
+        <i class="bi bi-person-badge me-2"></i> Driver Information
+      </button>
+    </h2>
+    <div id="sectionDriver" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Driver Name</label>
+            <% if (disabled) { %>
+              <% if (b.driverId) { %><a href="/entities/driver/<%= b.driverId %>"><%= b.driverName %></a><% } else { %>—<% } %>
+            <% } else { %>
+              <input type="text" name="driverName" class="form-control autocomplete-input"
+                     data-type="driver" value="<%= b.driverName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Driver Number</label>
+            <input type="text" name="driverNumber" class="form-control"
+                   value="<%= b.driverNumber || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Owner Information -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionOwner">
+        <i class="bi bi-person-workspace me-2"></i> Owner Information
+      </button>
+    </h2>
+    <div id="sectionOwner" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Truck Owner</label>
+            <% if (disabled) { %>
+              <% if (b.truckOwnerId) { %><a href="/entities/owner/<%= b.truckOwnerId %>"><%= b.truckOwnerName %></a><% } else { %>—<% } %>
+            <% } else { %>
+              <input type="text" name="truckOwnerName" class="form-control autocomplete-input"
+                     data-type="owner" value="<%= b.truckOwnerName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Owner Number</label>
+            <input type="text" name="truckOwnerNumber" class="form-control"
+                   value="<%= b.truckOwnerNumber || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goods Information -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionGoods">
+        <i class="bi bi-box-seam me-2"></i> Goods Information
+      </button>
+    </h2>
+    <div id="sectionGoods" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Goods</label>
+            <% if (disabled) { %>
+              <%= b.goodName || '—' %>
+            <% } else { %>
+              <input type="text" name="goodName" class="form-control autocomplete-input"
+                     data-type="good" value="<%= b.goodName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Description</label>
+            <input type="text" name="descriptionOfGoods" class="form-control"
+                   value="<%= b.descriptionOfGoods || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Quantity</label>
+            <input type="number" step="0.01" name="quantity" class="form-control"
+                   value="<%= b.quantity ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Unload Quantity</label>
+            <input type="number" step="0.01" name="unloadQuantity" class="form-control"
+                   value="<%= b.unloadQuantity ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Company Unload</label>
+            <input type="text" name="companyUnload" class="form-control"
+                   value="<%= b.companyUnload || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weight Details -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionWeight">
+        <i class="bi bi-speedometer me-2"></i> Weight Details
+      </button>
+    </h2>
+    <div id="sectionWeight" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Weight (Kgs)</label>
+            <input type="number" step="0.01" name="weightKgs" class="form-control"
+                   value="<%= b.weightKgs ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Unloaded Weight (Kgs)</label>
+            <input type="number" step="0.01" name="unloadedWeightKgs" class="form-control"
+                   value="<%= b.unloadedWeightKgs ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-6">
+            <input type="hidden" name="isUnloadComplete" value="false">
+            <div class="form-check mt-4">
+              <input type="checkbox" name="isUnloadComplete" value="true" class="form-check-input" id="isUnloadComplete"
+                     <%= b.isUnloadComplete ? 'checked' : '' %> <%= disabled ? 'disabled' : '' %>>
+              <label class="form-check-label" for="isUnloadComplete">Unload Complete</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finance Information -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionFinance">
+        <i class="bi bi-currency-rupee me-2"></i> Finance Information
+      </button>
+    </h2>
+    <div id="sectionFinance" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Rate</label>
+            <input type="number" step="0.01" name="rate" class="form-control" value="<%= b.rate ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Company Rate</label>
+            <input type="number" step="0.01" name="companyRate" class="form-control" value="<%= b.companyRate ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Company Freight</label>
+            <input type="number" step="0.01" name="companyFreight" class="form-control" value="<%= b.companyFreight ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Advance</label>
+            <input type="number" step="0.01" name="advance" class="form-control" value="<%= b.advance ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Loading Hamali</label>
+            <input type="number" step="0.01" name="loadingHamali" class="form-control" value="<%= b.loadingHamali ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Unloading Hamali</label>
+            <input type="number" step="0.01" name="unloadingHamali" class="form-control" value="<%= b.unloadingHamali ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Balance Courier</label>
+            <input type="number" step="0.01" name="balanceCourier" class="form-control" value="<%= b.balanceCourier ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Commission</label>
+            <input type="number" step="0.01" name="commission" class="form-control" value="<%= b.commission ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Local Driver Charges</label>
+            <input type="number" step="0.01" name="localDriverCharges" class="form-control" value="<%= b.localDriverCharges ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Rough Balance</label>
+            <input type="number" step="0.01" name="roughBalance" class="form-control" value="<%= b.roughBalance ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Gumasta Charges</label>
+            <input type="number" step="0.01" name="gumastaCharges" class="form-control" value="<%= b.gumastaCharges ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Weight Katta Charges</label>
+            <input type="number" step="0.01" name="weightKattaCharges" class="form-control" value="<%= b.weightKattaCharges ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Balance</label>
+            <input type="number" step="0.01" name="balance" class="form-control" value="<%= b.balance ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Courier Charges</label>
+            <input type="number" step="0.01" name="courierCharges" class="form-control" value="<%= b.courierCharges ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Lorry Freight Paid</label>
+            <input type="number" step="0.01" name="lorryFreightPaid" class="form-control" value="<%= b.lorryFreightPaid ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Bank Name</label>
+            <% if (disabled) { %>
+              <%= b.bankName || '—' %>
+            <% } else { %>
+              <input type="text" name="bankName" class="form-control autocomplete-input"
+                     data-type="banking" value="<%= b.bankName || '' %>" autocomplete="off">
+            <% } %>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Account Number</label>
+            <input type="text" name="accountNumber" class="form-control" value="<%= b.accountNumber || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">IFSC</label>
+            <input type="text" name="ifsc" class="form-control" value="<%= b.ifsc || '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Finance Remark</label>
+            <textarea name="financeRemark" class="form-control" rows="2" <%= disabled ? 'readonly' : '' %>><%= b.financeRemark || '' %></textarea>
+          </div>
+          <div class="col-md-6">
+            <input type="hidden" name="isFinanceComplete" value="false">
+            <div class="form-check">
+              <input type="checkbox" name="isFinanceComplete" value="true" class="form-check-input" id="isFinanceComplete"
+                     <%= b.isFinanceComplete ? 'checked' : '' %> <%= disabled ? 'disabled' : '' %>>
+              <label class="form-check-label" for="isFinanceComplete">Finance Complete</label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <input type="hidden" name="financeEditedFlag" value="false">
+            <div class="form-check">
+              <input type="checkbox" name="financeEditedFlag" value="true" class="form-check-input" id="financeEditedFlag"
+                     <%= b.financeEditedFlag ? 'checked' : '' %> <%= disabled ? 'disabled' : '' %>>
+              <label class="form-check-label" for="financeEditedFlag">Finance Edited</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline (read-only info) -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionTimeline">
+        <i class="bi bi-calendar-event me-2"></i> Timeline
+      </button>
+    </h2>
+    <div id="sectionTimeline" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">On Road Time</label>
+            <input type="text" class="form-control" value="<%= formatDateTime(b.onRoadTime) || '—' %>" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Unload Time</label>
+            <input type="text" class="form-control" value="<%= formatDateTime(b.unloadTime) || '—' %>" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Created At</label>
+            <input type="text" class="form-control" value="<%= formatDateTime(b.createdAt) || '—' %>" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Updated At</label>
+            <input type="text" class="form-control" value="<%= formatDateTime(b.updatedAt) || '—' %>" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Created By</label>
+            <input type="text" class="form-control" value="<%= b.createdBy || '—' %>" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Updated By</label>
+            <input type="text" class="form-control" value="<%= b.updatedBy || '—' %>" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remarks -->
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionRemarks">
+        <i class="bi bi-chat-left-text me-2"></i> Remarks
+      </button>
+    </h2>
+    <div id="sectionRemarks" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+      <div class="accordion-body">
+        <label class="form-label">Management Remark</label>
+        <textarea name="managementRemark" class="form-control" rows="3" <%= disabled ? 'readonly' : '' %>><%= b.managementRemark || '' %></textarea>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,71 @@
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="page-title">Bookings</h1>
+    <p class="text-muted mb-0">Manage and track all logistics bookings</p>
+  </div>
+  <a href="/bookings/new" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> New Entry
+  </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Stage</label>
+        <select id="filterStage" class="form-select">
+          <option value="">All Stages</option>
+          <% Object.keys(stageLabels).forEach(function(key) { %>
+            <option value="<%= key %>" <%= filters.stage === key ? 'selected' : '' %>><%= stageLabels[key] %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Date From</label>
+        <input type="date" id="filterDateFrom" class="form-control" value="<%= filters.dateFrom %>">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Date To</label>
+        <input type="date" id="filterDateTo" class="form-control" value="<%= filters.dateTo %>">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Search</label>
+        <input type="text" id="filterSearch" class="form-control" placeholder="Booking ID, location, driver...">
+      </div>
+      <div class="col-md-2">
+        <button type="button" id="applyFilters" class="btn btn-primary w-100">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table id="bookingsTable" class="table table-hover align-middle w-100">
+        <thead>
+          <tr>
+            <th>Booking ID</th>
+            <th>Stage</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Transporter</th>
+            <th>Driver</th>
+            <th>Truck</th>
+            <th>Rate</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="/js/bookings-list.js"></script>

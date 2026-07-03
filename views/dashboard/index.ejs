@@ -1,0 +1,98 @@
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="text-muted mb-0">Overview of your logistics operations</p>
+  </div>
+  <a href="/bookings/new" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> New Parking Lot Entry
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl">
+    <a href="<%= cardLinks.parkingLot %>" class="stat-card stat-secondary">
+      <div class="stat-icon"><i class="bi bi-p-square"></i></div>
+      <div class="stat-value"><%= stats.parkingLot %></div>
+      <div class="stat-label">Parking Lot</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <a href="<%= cardLinks.onRoad %>" class="stat-card stat-primary">
+      <div class="stat-icon"><i class="bi bi-signpost-split"></i></div>
+      <div class="stat-value"><%= stats.onRoad %></div>
+      <div class="stat-label">On Road</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <a href="<%= cardLinks.unload %>" class="stat-card stat-warning">
+      <div class="stat-icon"><i class="bi bi-box-arrow-down"></i></div>
+      <div class="stat-value"><%= stats.unload %></div>
+      <div class="stat-label">Unloaded</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <a href="<%= cardLinks.done %>" class="stat-card stat-success">
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-value"><%= stats.done %></div>
+      <div class="stat-label">Completed</div>
+    </a>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <a href="<%= cardLinks.archived %>" class="stat-card stat-dark">
+      <div class="stat-icon"><i class="bi bi-archive"></i></div>
+      <div class="stat-value"><%= stats.archived %></div>
+      <div class="stat-label">Archived</div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.todaysBookings %>" class="info-card">
+      <span class="info-label">Today's Bookings</span>
+      <span class="info-value"><%= stats.todaysBookings %></span>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.todaysGeneratedIds %>" class="info-card">
+      <span class="info-label">Today's Generated IDs</span>
+      <span class="info-value"><%= stats.todaysGeneratedIds %></span>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.pendingFinance %>" class="info-card">
+      <span class="info-label">Pending Finance</span>
+      <span class="info-value text-warning"><%= stats.pendingFinance %></span>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.pendingUnload %>" class="info-card">
+      <span class="info-label">Pending Unload</span>
+      <span class="info-value text-warning"><%= stats.pendingUnload %></span>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.totalFreight %>" class="info-card">
+      <span class="info-label">Total Freight</span>
+      <span class="info-value">₹<%= Number(stats.totalFreight || 0).toLocaleString('en-IN') %></span>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.totalCompanyFreight %>" class="info-card">
+      <span class="info-label">Total Company Freight</span>
+      <span class="info-value">₹<%= Number(stats.totalCompanyFreight || 0).toLocaleString('en-IN') %></span>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.activeDrivers %>" class="info-card">
+      <span class="info-label">Active Drivers</span>
+      <span class="info-value"><%= stats.activeDrivers %></span>
+    </a>
+  </div>
+  <div class="col-md-6 col-lg-3">
+    <a href="<%= cardLinks.activeTrucks %>" class="info-card">
+      <span class="info-label">Active Trucks</span>
+      <span class="info-value"><%= stats.activeTrucks %></span>
+    </a>
+  </div>
+</div>

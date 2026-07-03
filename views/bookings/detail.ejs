@@ -1,0 +1,100 @@
+<%
+  const b = booking || {};
+  const isReadOnly = typeof readOnly !== 'undefined' && readOnly;
+%>
+
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/bookings">Bookings</a></li>
+        <li class="breadcrumb-item active"><%= b.bookingId || 'Parking Lot #' + b.id %></li>
+      </ol>
+    </nav>
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <h1 class="page-title mb-0"><%= b.bookingId || 'Parking Lot Entry #' + b.id %></h1>
+      <%- include('../partials/stage-badge', { stage: b.stage }) %>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <% if (!isReadOnly) { %>
+      <a href="/bookings/<%= b.id %>/edit" class="btn btn-outline-primary">
+        <i class="bi bi-pencil me-1"></i> Edit
+      </a>
+      <% if (nextStages && nextStages.length) { %>
+        <% nextStages.forEach(function(ns) { %>
+          <button type="button" class="btn btn-primary stage-transition-btn"
+                  data-stage="<%= ns.value %>" data-label="<%= ns.label %>">
+            Move to <%= ns.label %>
+          </button>
+        <% }); %>
+      <% } %>
+    <% } else { %>
+      <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-lock me-1"></i> Read Only</span>
+    <% } %>
+  </div>
+</div>
+
+<form id="bookingDetailForm" method="POST" action="/bookings/<%= b.id %>">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <%- include('../partials/booking-sections', { booking: b, readOnly: isReadOnly }) %>
+    </div>
+    <div class="col-lg-4">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header"><i class="bi bi-clock-history me-2"></i>Timeline</div>
+        <div class="card-body timeline-body">
+          <% if (timeline && timeline.length) { %>
+            <div class="timeline">
+              <% timeline.forEach(function(entry) { %>
+                <div class="timeline-item">
+                  <div class="timeline-marker"></div>
+                  <div class="timeline-content">
+                    <div class="timeline-title"><%= entry.actionDescription %></div>
+                    <% if (entry.fieldName && entry.oldValue !== entry.newValue) { %>
+                      <div class="timeline-change small text-muted">
+                        <%= entry.oldValue || '—' %> → <%= entry.newValue || '—' %>
+                      </div>
+                    <% } %>
+                    <div class="timeline-meta small text-muted">
+                      <%= entry.changedBy %> · <%= formatDateTime(entry.timestamp) %>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <p class="text-muted mb-0">No history yet.</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="modal fade" id="stageModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="stageForm" method="POST" action="/bookings/<%= b.id %>/stage">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Stage Change</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="stage" id="stageValue">
+          <p>Move this booking to <strong id="stageLabel"></strong>?</p>
+          <div class="mb-3">
+            <label class="form-label">Remark (optional)</label>
+            <textarea name="remark" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/booking-detail.js"></script>
