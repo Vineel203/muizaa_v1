@@ -1,6 +1,6 @@
 'use strict';
 
-require('dotenv').config();
+require('./env');
 
 module.exports = {
   secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',

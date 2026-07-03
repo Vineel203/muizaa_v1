@@ -1,6 +1,6 @@
 'use strict';
 
-require('dotenv').config();
+require('../config/env');
 
 const { getContainer } = require('../config/container');
 const { closePool } = require('../utils/db');

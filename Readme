@@ -67,22 +67,54 @@ Visit `http://localhost:3000` — you will be redirected to login.
 
 ## Firebase Deployment
 
-1. Update `.firebaserc` with your Firebase project ID.
+Your local `.env` is **not** deployed (it is gitignored). Cloud Run / App Hosting injects env vars separately.
 
-2. Set environment variables for Cloud Functions:
+### 1. Create secrets (one-time)
 
 ```bash
+firebase login
+firebase use muizaa
+
+# Paste your PostgreSQL connection string when prompted
 firebase functions:secrets:set DATABASE_URL
+
+# Paste a long random string for sessions
 firebase functions:secrets:set SESSION_SECRET
 ```
 
-3. Deploy:
+For **App Hosting**, the same secrets are referenced in `apphosting.yaml`.
 
+### 2. Grant secret access (if prompted during deploy)
+
+Firebase CLI will ask to grant the Cloud Run service account access to secrets — accept this.
+
+### 3. Deploy
+
+**App Hosting** (Cloud Run — service name `muizaa`):
+```bash
+git push   # if connected to GitHub rollout
+# or redeploy from Firebase console
+```
+
+**Hosting + Functions**:
 ```bash
 firebase deploy
 ```
 
-Static assets are served via Firebase Hosting. All dynamic routes are handled by the `api` Cloud Function.
+### 4. SSL for PostgreSQL
+
+- Local DB without SSL: `DB_SSL=false` in `.env`
+- Cloud SQL requiring SSL: set `DB_SSL=true` in App Hosting env or add `?sslmode=require` to `DATABASE_URL`
+
+### Troubleshooting: "container failed to start on PORT=8080"
+
+This means the app crashed before listening. Common causes:
+
+1. `DATABASE_URL` not set in Firebase (local `.env` does not deploy)
+2. `SESSION_SECRET` not set in Firebase
+3. `DB_SSL=true` against a server that does not support SSL — set `DB_SSL=false`
+
+Check logs: Firebase console → App Hosting → your backend → Logs.
 
 ## Booking Workflow
 

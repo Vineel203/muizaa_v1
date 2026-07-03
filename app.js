@@ -60,6 +60,10 @@ function createApp() {
     })
   );
 
+  app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
   app.use(attachLocals);
   app.use(express.static(path.join(__dirname, 'public')));
 
