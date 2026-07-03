@@ -21,9 +21,9 @@ env:
   - variable: SESSION_SECRET
     secret: SESSION_SECRET
 
-  # Must match the Cloud SQL instance connection name (project:region:instance)
+  # Must exactly match cloudSqlInstances above
   - variable: CLOUD_SQL_INSTANCE
-    value: muizaa:us-east4:muizaa-database
+    value: muizaa:asia-south1:muizaa-instance
 
   - variable: DB_SSL
     value: "false"

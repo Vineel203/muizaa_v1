@@ -68,12 +68,38 @@ function createApp() {
     try {
       const { query } = require('../utils/db');
       await query('SELECT 1 AS ok');
-      res.status(200).json({ status: 'ok', database: 'connected' });
+
+      const tables = await query(`
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name IN ('users', 'session')
+      `);
+
+      const tableNames = tables.rows.map((r) => r.table_name);
+      const missing = ['users', 'session'].filter((t) => !tableNames.includes(t));
+
+      if (missing.length) {
+        return res.status(503).json({
+          status: 'error',
+          database: 'connected',
+          message: `Missing tables: ${missing.join(', ')}. Run npm run migrate.`,
+        });
+      }
+
+      const users = await query('SELECT COUNT(*)::int AS count FROM users');
+      res.status(200).json({
+        status: 'ok',
+        database: 'connected',
+        users: users.rows[0].count,
+        cloudSqlInstance: process.env.CLOUD_SQL_INSTANCE || null,
+      });
     } catch (error) {
       res.status(503).json({
         status: 'error',
         database: 'unreachable',
         message: error.message,
+        cloudSqlInstance: process.env.CLOUD_SQL_INSTANCE || null,
       });
     }
   });

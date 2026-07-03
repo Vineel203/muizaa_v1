@@ -4,6 +4,8 @@ const { body } = require('express-validator');
 const { getContainer } = require('../config/container');
 const sessionConfig = require('../config/session');
 const { validateRequest } = require('../middlewares/validationMiddleware');
+const { ValidationError } = require('../utils/errors');
+const logger = require('../utils/logger');
 
 class AuthController {
   constructor() {
@@ -37,10 +39,11 @@ class AuthController {
           req.session.cookie.maxAge = sessionConfig.maxAge;
         }
 
-        req.session.save((err) => {
-          if (err) return next(err);
-          return res.redirect('/dashboard');
+        await new Promise((resolve, reject) => {
+          req.session.save((err) => (err ? reject(err) : resolve()));
         });
+
+        return res.redirect('/dashboard');
       } catch (error) {
         if (error.statusCode === 401) {
           return res.status(401).render('auth/login', {
@@ -50,7 +53,28 @@ class AuthController {
             email: req.body.email,
           });
         }
-        return next(error);
+
+        if (error instanceof ValidationError) {
+          return res.status(422).render('auth/login', {
+            title: 'Login',
+            layout: 'layouts/auth',
+            error: error.message,
+            email: req.body.email,
+          });
+        }
+
+        logger.error('Login failed', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack,
+        });
+
+        return res.status(500).render('auth/login', {
+          title: 'Login',
+          layout: 'layouts/auth',
+          error: 'Unable to sign in right now. Please try again shortly.',
+          email: req.body.email,
+        });
       }
     },
   ];

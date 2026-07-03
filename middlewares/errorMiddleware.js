@@ -1,7 +1,6 @@
 'use strict';
 
 const logger = require('../utils/logger');
-const appConfig = require('../config/app');
 
 function notFoundHandler(req, res, next) {
   if (req.xhr || req.headers.accept?.includes('application/json')) {
@@ -15,9 +14,10 @@ function notFoundHandler(req, res, next) {
 
 function errorHandler(err, req, res, next) {
   logger.error(err.message, {
-    stack: appConfig.isDevelopment ? err.stack : undefined,
+    stack: err.stack,
     code: err.code,
     path: req.path,
+    method: req.method,
   });
 
   const statusCode = err.statusCode || 500;
