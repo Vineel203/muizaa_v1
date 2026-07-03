@@ -1,12 +1,13 @@
 'use strict';
 
 const { onRequest } = require('firebase-functions/v2/https');
+const { initDatabase } = require('./utils/db');
 const createApp = require('./app');
 
-let app;
+let appPromise;
 
-function getApp() {
-  if (!app) {
+async function getApp() {
+  if (!appPromise) {
     if (!process.env.DATABASE_URL) {
       throw new Error(
         'DATABASE_URL is not set. Run: firebase functions:secrets:set DATABASE_URL'
@@ -17,9 +18,10 @@ function getApp() {
         'SESSION_SECRET is not set. Run: firebase functions:secrets:set SESSION_SECRET'
       );
     }
-    app = createApp();
+
+    appPromise = initDatabase().then(() => createApp());
   }
-  return app;
+  return appPromise;
 }
 
 exports.api = onRequest(
@@ -29,5 +31,8 @@ exports.api = onRequest(
     timeoutSeconds: 60,
     secrets: ['DATABASE_URL', 'SESSION_SECRET'],
   },
-  (req, res) => getApp()(req, res)
+  async (req, res) => {
+    const app = await getApp();
+    return app(req, res);
+  }
 );

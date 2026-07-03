@@ -1,15 +1,14 @@
 # Firebase App Hosting configuration
 # https://firebase.google.com/docs/app-hosting/configure
 
+# Root level — NOT under runConfig (required for socket mount)
+cloudSqlInstances:
+  - muizaa:asia-south1:muizaa-instance
+
 runConfig:
   minInstances: 0
   maxInstances: 10
   concurrency: 80
-  # REQUIRED for Cloud SQL from App Hosting (Cloud Run).
-  # Find in: Google Cloud Console → SQL → your instance → Connection name
-  # Example: muizaa:us-east4:muizaa-database
-  cloudSqlInstances:
-    - muizaa:asia-south1:muizaa-instance
 
 env:
   - variable: NODE_ENV
@@ -21,9 +20,12 @@ env:
   - variable: SESSION_SECRET
     secret: SESSION_SECRET
 
-  # Must exactly match cloudSqlInstances above
   - variable: CLOUD_SQL_INSTANCE
     value: muizaa:asia-south1:muizaa-instance
+
+  # Uses @google-cloud/cloud-sql-connector (works without Unix socket mount)
+  - variable: CLOUD_SQL_USE_CONNECTOR
+    value: "true"
 
   - variable: DB_SSL
     value: "false"

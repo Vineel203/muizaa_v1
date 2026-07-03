@@ -3,9 +3,10 @@
 require('../config/env');
 
 const { getContainer } = require('../config/container');
-const { closePool } = require('../utils/db');
+const { initDatabase, closePool } = require('../utils/db');
 
 async function seed() {
+  await initDatabase();
   const { authService } = getContainer().services;
 
   const email = process.env.ADMIN_EMAIL || 'admin@muizaa.com';

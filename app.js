@@ -92,6 +92,7 @@ function createApp() {
         database: 'connected',
         users: users.rows[0].count,
         cloudSqlInstance: process.env.CLOUD_SQL_INSTANCE || null,
+        connectionMode: process.env.CLOUD_SQL_USE_CONNECTOR === 'true' ? 'connector' : 'direct',
       });
     } catch (error) {
       res.status(503).json({

@@ -41,6 +41,19 @@ function resolveSsl(connectionString) {
   return false;
 }
 
+function getCredentials() {
+  const parsed = parseDatabaseUrl(process.env.DATABASE_URL);
+  if (!parsed) {
+    throw new Error('DATABASE_URL is invalid or not set');
+  }
+
+  return {
+    user: process.env.DB_USER || parsed.user,
+    password: process.env.DB_PASSWORD || parsed.password,
+    database: process.env.DB_NAME || parsed.database,
+  };
+}
+
 function getPoolConfig() {
   const max = parseInt(process.env.DB_POOL_MAX, 10) || 10;
   const common = {
@@ -50,15 +63,23 @@ function getPoolConfig() {
   };
 
   const cloudSqlInstance = process.env.CLOUD_SQL_INSTANCE;
+  const useConnector = process.env.CLOUD_SQL_USE_CONNECTOR === 'true';
   const parsed = parseDatabaseUrl(process.env.DATABASE_URL);
 
-  if (cloudSqlInstance) {
+  // Production Cloud SQL via connector — pool built in utils/db.js
+  if (cloudSqlInstance && useConnector && process.env.NODE_ENV === 'production') {
+    return { ...common, mode: 'connector', instance: cloudSqlInstance, credentials: getCredentials() };
+  }
+
+  // Unix socket (when App Hosting mounts /cloudsql/...)
+  if (cloudSqlInstance && process.env.NODE_ENV === 'production') {
     if (!parsed) {
       throw new Error('DATABASE_URL is required when CLOUD_SQL_INSTANCE is set');
     }
 
     return {
       ...common,
+      mode: 'socket',
       user: process.env.DB_USER || parsed.user,
       password: process.env.DB_PASSWORD || parsed.password,
       database: process.env.DB_NAME || parsed.database,
@@ -72,6 +93,7 @@ function getPoolConfig() {
 
   return {
     ...common,
+    mode: 'direct',
     connectionString: process.env.DATABASE_URL,
     ssl: resolveSsl(process.env.DATABASE_URL),
   };
@@ -79,5 +101,6 @@ function getPoolConfig() {
 
 module.exports = {
   getPoolConfig,
+  getCredentials,
   parseDatabaseUrl,
 };

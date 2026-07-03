@@ -2,6 +2,7 @@
 
 require('./config/env');
 
+const { initDatabase } = require('./utils/db');
 const createApp = require('./app');
 
 function validateStartupEnv() {
@@ -14,24 +15,32 @@ function validateStartupEnv() {
   }
 }
 
-validateStartupEnv();
+async function main() {
+  validateStartupEnv();
+  await initDatabase();
 
-const app = createApp();
-const port = parseInt(process.env.PORT, 10) || 8080;
-const host = '0.0.0.0';
+  const app = createApp();
+  const port = parseInt(process.env.PORT, 10) || 8080;
+  const host = '0.0.0.0';
 
-const server = app.listen(port, host, () => {
-  console.log(`Muizaa Logistics listening on http://localhost:${port}`);
-});
+  const server = app.listen(port, host, () => {
+    console.log(`Muizaa Logistics listening on http://localhost:${port}`);
+  });
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`\nPort ${port} is already in use.`);
-    console.error('Stop the other process, or run:');
-    console.error(`  netstat -ano | findstr :${port}`);
-    console.error('  taskkill /PID <pid> /F');
-    console.error('\nOr change PORT in .env to another port (e.g. 3001).\n');
-    process.exit(1);
-  }
-  throw err;
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\nPort ${port} is already in use.`);
+      console.error('Stop the other process, or run:');
+      console.error(`  netstat -ano | findstr :${port}`);
+      console.error('  taskkill /PID <pid> /F');
+      console.error('\nOr change PORT in .env to another port (e.g. 3001).\n');
+      process.exit(1);
+    }
+    throw err;
+  });
+}
+
+main().catch((err) => {
+  console.error('Failed to start server:', err.message);
+  process.exit(1);
 });
