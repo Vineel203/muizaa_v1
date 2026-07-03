@@ -12,7 +12,7 @@ const morgan = require('morgan');
 
 const appConfig = require('./config/app');
 const sessionConfig = require('./config/session');
-const { getPool } = require('./utils/db');
+const { getPool, query } = require('./utils/db');
 const attachLocals = require('./middlewares/localsMiddleware');
 const { notFoundHandler, errorHandler } = require('./middlewares/errorMiddleware');
 const routes = require('./routes');
@@ -66,7 +66,6 @@ function createApp() {
 
   app.get('/health/db', async (req, res) => {
     try {
-      const { query } = require('../utils/db');
       await query('SELECT 1 AS ok');
 
       const tables = await query(`
