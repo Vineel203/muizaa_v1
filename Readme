@@ -101,10 +101,37 @@ git push   # if connected to GitHub rollout
 firebase deploy
 ```
 
-### 4. SSL for PostgreSQL
+### 4. Cloud SQL from App Hosting (fixes login 500 / 10s timeout)
+
+App Hosting runs on Cloud Run and **cannot** reach your database via public IP in most setups.
+The app uses a **Cloud SQL socket** in production when `CLOUD_SQL_INSTANCE` is set.
+
+1. In **Google Cloud Console → SQL → your instance**, copy **Connection name**  
+   (format: `muizaa:REGION:INSTANCE_NAME`)
+
+2. Update `apphosting.yaml`:
+   - `runConfig.cloudSqlInstances` — same connection name
+   - `env.CLOUD_SQL_INSTANCE` — same connection name
+
+3. Keep `DATABASE_URL` secret with your user/password/database (host can stay as-is; socket overrides it in production)
+
+4. Redeploy, then test: `https://YOUR-URL/health/db`  
+   Should return `{"status":"ok","database":"connected"}`
+
+5. Run migration on the cloud database (from your machine):
+   ```bash
+   npm run migrate
+   npm run seed
+   ```
+
+### 5. SSL for PostgreSQL
 
 - Local DB without SSL: `DB_SSL=false` in `.env`
 - Cloud SQL requiring SSL: set `DB_SSL=true` in App Hosting env or add `?sslmode=require` to `DATABASE_URL`
+
+### Troubleshooting: login returns 500 after ~10 seconds
+
+Database connection timeout from Cloud Run. Fix Cloud SQL socket config (step 4 above).
 
 ### Troubleshooting: "container failed to start on PORT=8080"
 

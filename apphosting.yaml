@@ -5,6 +5,11 @@ runConfig:
   minInstances: 0
   maxInstances: 10
   concurrency: 80
+  # REQUIRED for Cloud SQL from App Hosting (Cloud Run).
+  # Find in: Google Cloud Console → SQL → your instance → Connection name
+  # Example: muizaa:us-east4:muizaa-database
+  cloudSqlInstances:
+    - muizaa:asia-south1:muizaa-instance
 
 env:
   - variable: NODE_ENV
@@ -16,6 +21,9 @@ env:
   - variable: SESSION_SECRET
     secret: SESSION_SECRET
 
-  # Set to "true" only if your PostgreSQL instance requires SSL
+  # Must match the Cloud SQL instance connection name (project:region:instance)
+  - variable: CLOUD_SQL_INSTANCE
+    value: muizaa:us-east4:muizaa-database
+
   - variable: DB_SSL
     value: "false"

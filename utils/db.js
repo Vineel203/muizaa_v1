@@ -1,27 +1,25 @@
 'use strict';
 
 const { Pool } = require('pg');
-const dbConfig = require('../config/database');
+const { getPoolConfig } = require('../config/database');
 const logger = require('./logger');
 
 let pool = null;
 
 function getPool() {
   if (!pool) {
-    if (!dbConfig.connectionString) {
-      throw new Error('DATABASE_URL environment variable is not set');
-    }
-    pool = new Pool({
-      connectionString: dbConfig.connectionString,
-      ssl: dbConfig.ssl,
-      max: dbConfig.max,
-      idleTimeoutMillis: dbConfig.idleTimeoutMillis,
-      connectionTimeoutMillis: dbConfig.connectionTimeoutMillis,
-    });
+    const config = getPoolConfig();
+    pool = new Pool(config);
 
     pool.on('error', (err) => {
       logger.error('Unexpected PostgreSQL pool error', { error: err.message });
     });
+
+    if (process.env.CLOUD_SQL_INSTANCE) {
+      logger.info('PostgreSQL pool using Cloud SQL socket', {
+        instance: process.env.CLOUD_SQL_INSTANCE,
+      });
+    }
   }
   return pool;
 }

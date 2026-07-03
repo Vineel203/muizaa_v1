@@ -64,6 +64,20 @@ function createApp() {
     res.status(200).json({ status: 'ok' });
   });
 
+  app.get('/health/db', async (req, res) => {
+    try {
+      const { query } = require('../utils/db');
+      await query('SELECT 1 AS ok');
+      res.status(200).json({ status: 'ok', database: 'connected' });
+    } catch (error) {
+      res.status(503).json({
+        status: 'error',
+        database: 'unreachable',
+        message: error.message,
+      });
+    }
+  });
+
   app.use(attachLocals);
   app.use(express.static(path.join(__dirname, 'public')));
 
