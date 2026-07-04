@@ -68,29 +68,52 @@ function createApp() {
     try {
       await query('SELECT 1 AS ok');
 
+      const requiredTables = [
+        'users',
+        'session',
+        'locations',
+        'consignors',
+        'consignees',
+        'transporters',
+        'drivers',
+        'truck_owners',
+        'trucks',
+        'banking_details',
+        'goods',
+        'booking_sequences',
+        'bookings',
+        'booking_history',
+      ];
+
       const tables = await query(`
         SELECT table_name
         FROM information_schema.tables
         WHERE table_schema = 'public'
-          AND table_name IN ('users', 'session')
-      `);
+          AND table_name = ANY($1::text[])
+      `, [requiredTables]);
 
       const tableNames = tables.rows.map((r) => r.table_name);
-      const missing = ['users', 'session'].filter((t) => !tableNames.includes(t));
+      const missing = requiredTables.filter((t) => !tableNames.includes(t));
 
       if (missing.length) {
         return res.status(503).json({
           status: 'error',
           database: 'connected',
           message: `Missing tables: ${missing.join(', ')}. Run npm run migrate.`,
+          missingTables: missing,
         });
       }
 
-      const users = await query('SELECT COUNT(*)::int AS count FROM users');
+      const [users, bookings] = await Promise.all([
+        query('SELECT COUNT(*)::int AS count FROM users'),
+        query('SELECT COUNT(*)::int AS count FROM bookings'),
+      ]);
+
       res.status(200).json({
         status: 'ok',
         database: 'connected',
         users: users.rows[0].count,
+        bookings: bookings.rows[0].count,
         cloudSqlInstance: process.env.CLOUD_SQL_INSTANCE || null,
         connectionMode: process.env.CLOUD_SQL_USE_CONNECTOR === 'true' ? 'connector' : 'direct',
       });

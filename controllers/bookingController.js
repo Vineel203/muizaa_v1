@@ -3,6 +3,8 @@
 const { getContainer } = require('../config/container');
 const { STAGES, STAGE_LABELS } = require('../config/permissions');
 const { isReadOnlyStage } = require('../utils/helpers');
+const { fromDbError } = require('../utils/errors');
+const logger = require('../utils/logger');
 
 class BookingController {
   constructor() {
@@ -49,7 +51,23 @@ class BookingController {
       req.session.flash = { type: 'success', message: 'Parking lot entry created successfully' };
       res.redirect(`/bookings/${booking.id}`);
     } catch (error) {
-      next(error);
+      logger.error('Create booking failed', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+      });
+
+      const message = error.isOperational
+        ? error.message
+        : fromDbError(error, 'Unable to save booking. Please try again.');
+
+      return res.status(error.statusCode || 500).render('bookings/form', {
+        title: 'New Parking Lot Entry',
+        booking: req.body,
+        isEdit: false,
+        readOnly: false,
+        error: message,
+      });
     }
   }
 

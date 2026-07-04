@@ -40,6 +40,25 @@ class ConflictError extends AppError {
   }
 }
 
+function fromDbError(error, fallback = 'Something went wrong. Please try again.') {
+  if (!error || !error.code) return fallback;
+
+  switch (error.code) {
+    case '42P01':
+      return 'Database schema is incomplete. Run npm run migrate against the production database.';
+    case '42703':
+      return 'Database schema is out of date. Run npm run migrate against the production database.';
+    case '23505':
+      return 'A duplicate record already exists for one of the entered values.';
+    case '23503':
+      return 'A related record could not be found. Please check your selections.';
+    case '23502':
+      return 'A required field is missing.';
+    default:
+      return fallback;
+  }
+}
+
 module.exports = {
   AppError,
   NotFoundError,
@@ -47,4 +66,5 @@ module.exports = {
   UnauthorizedError,
   ForbiddenError,
   ConflictError,
+  fromDbError,
 };

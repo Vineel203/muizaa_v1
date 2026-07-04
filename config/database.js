@@ -66,12 +66,12 @@ function getPoolConfig() {
   const useConnector = process.env.CLOUD_SQL_USE_CONNECTOR === 'true';
   const parsed = parseDatabaseUrl(process.env.DATABASE_URL);
 
-  // Production Cloud SQL via connector — pool built in utils/db.js
-  if (cloudSqlInstance && useConnector && process.env.NODE_ENV === 'production') {
+  // Cloud SQL via connector (App Hosting + local migrate/seed with gcloud auth)
+  if (cloudSqlInstance && useConnector) {
     return { ...common, mode: 'connector', instance: cloudSqlInstance, credentials: getCredentials() };
   }
 
-  // Unix socket (when App Hosting mounts /cloudsql/...)
+  // Unix socket (Cloud Run only — /cloudsql/ mount)
   if (cloudSqlInstance && process.env.NODE_ENV === 'production') {
     if (!parsed) {
       throw new Error('DATABASE_URL is required when CLOUD_SQL_INSTANCE is set');

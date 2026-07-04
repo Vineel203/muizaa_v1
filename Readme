@@ -118,11 +118,37 @@ The app uses a **Cloud SQL socket** in production when `CLOUD_SQL_INSTANCE` is s
 4. Redeploy, then test: `https://YOUR-URL/health/db`  
    Should return `{"status":"ok","database":"connected"}`
 
-5. Run migration on the cloud database (from your machine):
+5. Run migration on the **cloud** database (from your machine, using the same DB as production):
+
+   Temporarily point `DATABASE_URL` in `.env` at your Cloud SQL instance (public IP or Cloud SQL Auth Proxy), then:
+
    ```bash
    npm run migrate
    npm run seed
    ```
+
+   Or one-off without editing `.env` (PowerShell):
+
+   ```powershell
+   $env:DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/muizaa-database"
+   $env:DB_SSL="false"
+   npm run migrate
+   npm run seed
+   ```
+
+   Verify in the browser: `/health/db` should list `bookings: 0` (or higher) and no `missingTables`.
+
+### Troubleshooting: POST /bookings returns 500
+
+**`column "field_name" of relation "booking_history" does not exist`** — the cloud DB has an older `booking_history` table. Run migrate against production (patches add missing columns automatically):
+
+```powershell
+$env:DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/muizaa-database"
+$env:DB_SSL="false"
+npm run migrate
+```
+
+Other causes: missing tables — check `/health/db` for `missingTables`.
 
 ### 5. SSL for PostgreSQL
 

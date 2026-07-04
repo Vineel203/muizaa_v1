@@ -64,7 +64,7 @@ class BookingRepository {
       `INSERT INTO bookings (${columns}) VALUES (${placeholders}) RETURNING *`,
       values
     );
-    return this.findById(result.rows[0].id, client);
+    return mapRowToCamel(result.rows[0]);
   }
 
   async update(id, data, client = null) {
