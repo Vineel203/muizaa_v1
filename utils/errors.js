@@ -48,6 +48,8 @@ function fromDbError(error, fallback = 'Something went wrong. Please try again.'
       return 'Database schema is incomplete. Run npm run migrate against the production database.';
     case '42703':
       return 'Database schema is out of date. Run npm run migrate against the production database.';
+    case '22P02':
+      return 'Database schema mismatch (column types). Run npm run migrate against the production database.';
     case '23505':
       return 'A duplicate record already exists for one of the entered values.';
     case '23503':

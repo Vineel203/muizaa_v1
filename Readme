@@ -47,6 +47,16 @@ Edit `.env` with your PostgreSQL connection string and session secret.
 npm run migrate
 ```
 
+**Fresh start (wipes all data, recreates schema, seeds admin):**
+
+```bash
+# PowerShell — set CONFIRM_DB_RESET=yes and your Cloud SQL DATABASE_URL first
+$env:CONFIRM_DB_RESET="yes"
+npm run db:fresh
+```
+
+Or step by step: `npm run db:reset` then `npm run seed`.
+
 4. **Seed admin user**
 
 ```bash
@@ -140,7 +150,9 @@ The app uses a **Cloud SQL socket** in production when `CLOUD_SQL_INSTANCE` is s
 
 ### Troubleshooting: POST /bookings returns 500
 
-**`column "field_name" of relation "booking_history" does not exist`** — the cloud DB has an older `booking_history` table. Run migrate against production (patches add missing columns automatically):
+**`column "field_name" of relation "booking_history" does not exist`** — run migrate (patch `001` adds missing columns).
+
+**`invalid input syntax for type uuid`** — `booking_history.booking_id` is UUID in Cloud SQL but the app uses integer ids. Run migrate (patch `002` fixes the column type).
 
 ```powershell
 $env:DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/muizaa-database"

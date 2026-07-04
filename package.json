@@ -11,6 +11,8 @@
     "dev": "node --watch server.js",
     "seed": "node scripts/seed.js",
     "migrate": "node scripts/migrate.js",
+    "db:reset": "node scripts/reset-database.js",
+    "db:fresh": "node scripts/reset-database.js --seed --yes",
     "lint": "node --check app.js"
   },
   "dependencies": {

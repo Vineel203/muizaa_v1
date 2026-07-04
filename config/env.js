@@ -7,7 +7,8 @@ const path = require('path');
 if (process.env.NODE_ENV !== 'production') {
   const envPath = path.join(__dirname, '..', '.env');
   if (fs.existsSync(envPath)) {
-    require('dotenv').config({ path: envPath });
+    // .env wins over stale shell variables (e.g. leftover $env:CLOUD_SQL_USE_CONNECTOR)
+    require('dotenv').config({ path: envPath, override: true });
   }
 }
 

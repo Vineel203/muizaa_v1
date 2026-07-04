@@ -8,8 +8,8 @@ class BookingHistoryRepository {
     const executor = client || { query };
     const result = await executor.query(
       `INSERT INTO booking_history
-        (booking_id, changed_by, action_description, field_name, old_value, new_value, stage_from, stage_to, remark)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        (booking_id, changed_by, action_description, field_name, old_value, new_value, stage_from, stage_to, remark, timestamp)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, NOW()))
        RETURNING *`,
       [
         entry.bookingId,
@@ -21,6 +21,7 @@ class BookingHistoryRepository {
         entry.stageFrom || null,
         entry.stageTo || null,
         entry.remark || null,
+        entry.timestamp || null,
       ]
     );
     return result.rows[0];

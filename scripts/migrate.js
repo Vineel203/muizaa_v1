@@ -2,35 +2,13 @@
 
 require('../config/env');
 
-const fs = require('fs');
-const path = require('path');
 const { initDatabase, closePool } = require('../utils/db');
+const { runMigrations } = require('./run-migrations');
 
 async function migrate() {
-  const dbDir = path.join(__dirname, '..', 'database');
-  const schemaPath = path.join(dbDir, 'schema.sql');
-  const patchesDir = path.join(dbDir, 'patches');
-
   console.log('Running database migration...');
   const pool = await initDatabase();
-
-  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-  await pool.query(schemaSql);
-  console.log('Applied schema.sql');
-
-  if (fs.existsSync(patchesDir)) {
-    const patchFiles = fs
-      .readdirSync(patchesDir)
-      .filter((file) => file.endsWith('.sql'))
-      .sort();
-
-    for (const file of patchFiles) {
-      const patchSql = fs.readFileSync(path.join(patchesDir, file), 'utf8');
-      await pool.query(patchSql);
-      console.log(`Applied patch ${file}`);
-    }
-  }
-
+  await runMigrations(pool);
   console.log('Migration completed successfully.');
   await closePool();
 }
