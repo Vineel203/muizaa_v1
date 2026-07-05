@@ -8,14 +8,9 @@ cloudSqlInstances:
 runConfig:
   minInstances: 0
   maxInstances: 10
-  concurrency: 20
-  memoryMiB: 2048
-  cpu: 2
-
-# Keep bundled Chromium runtime libraries in the deploy output
-outputFiles:
-  serverApp:
-    include: [., node_modules, vendor, templates, views, public]
+  concurrency: 80
+  memoryMiB: 512
+  cpu: 1
 
 env:
   - variable: NODE_ENV
@@ -43,3 +38,10 @@ env:
 
   - variable: GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON
     secret: GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON
+
+  # HTML → PDF via Gotenberg on Cloud Run (see: npm run deploy:gotenberg)
+  - variable: GOTENBERG_URL
+    secret: GOTENBERG_URL
+
+  - variable: GOTENBERG_USE_IAM
+    value: "true"

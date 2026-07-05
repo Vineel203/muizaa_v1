@@ -15,12 +15,13 @@
     "db:reset": "node scripts/reset-database.js",
     "db:fresh": "node scripts/reset-database.js --seed --yes",
     "install:chrome": "node scripts/install-puppeteer-chrome.js",
-    "postinstall": "node scripts/install-puppeteer-chrome.js && node scripts/install-chromium-runtime-libs.js",
+    "postinstall": "node scripts/install-puppeteer-chrome.js",
+    "deploy:gotenberg": "node scripts/deploy-gotenberg.js",
     "lint": "node --check app.js"
   },
   "dependencies": {
     "@google-cloud/cloud-sql-connector": "^1.6.0",
-    "@sparticuz/chromium": "^149.0.0",
+    "google-auth-library": "^10.3.0",
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.5",
     "connect-pg-simple": "^10.0.0",
