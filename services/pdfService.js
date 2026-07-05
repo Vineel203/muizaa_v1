@@ -53,14 +53,10 @@ async function resolveLaunchOptions() {
       throw new Error('Serverless Chromium binary not found for PDF generation');
     }
 
-    const args = typeof puppeteerCore.defaultArgs === 'function'
-      ? puppeteerCore.defaultArgs({ args: [...Chromium.args, ...SANDBOX_ARGS], headless: true })
-      : [...Chromium.args, ...SANDBOX_ARGS];
-
     return {
       executablePath,
       headless: true,
-      args,
+      args: [...Chromium.args, ...SANDBOX_ARGS],
     };
   }
 
