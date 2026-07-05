@@ -8,9 +8,14 @@ cloudSqlInstances:
 runConfig:
   minInstances: 0
   maxInstances: 10
-  concurrency: 40
-  memoryMiB: 1024
-  cpu: 1
+  concurrency: 20
+  memoryMiB: 2048
+  cpu: 2
+
+# Keep bundled Chromium runtime libraries in the deploy output
+outputFiles:
+  serverApp:
+    include: [., node_modules, vendor, templates, views, public]
 
 env:
   - variable: NODE_ENV

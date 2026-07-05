@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const puppeteerCore = require('puppeteer-core');
 const logger = require('../utils/logger');
 
@@ -16,6 +17,23 @@ const SYSTEM_CHROME_PATHS = [
 ].filter(Boolean);
 
 const SANDBOX_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
+
+function prependBundledLinuxLibraryPath() {
+  const archDir = process.arch === 'arm64' ? 'aarch64-linux-gnu' : 'x86_64-linux-gnu';
+  const vendorRoot = path.join(__dirname, '..', 'vendor', 'chromium-libs');
+  const libDirs = [
+    path.join(vendorRoot, 'usr', 'lib', archDir),
+    path.join(vendorRoot, 'usr', 'lib'),
+  ].filter((dir) => fs.existsSync(dir));
+
+  if (!libDirs.length) {
+    return;
+  }
+
+  process.env.LD_LIBRARY_PATH = [...libDirs, process.env.LD_LIBRARY_PATH]
+    .filter(Boolean)
+    .join(':');
+}
 
 let sparticuzChromiumPromise;
 
@@ -45,6 +63,10 @@ async function resolveLaunchOptions() {
 
   // Cloud Run / Linux production — bundled serverless Chromium (ESM package)
   if (process.platform === 'linux') {
+    prependBundledLinuxLibraryPath();
+    if (!process.env.LD_LIBRARY_PATH) {
+      logger.warn('Bundled Chromium runtime libraries were not found in vendor/chromium-libs');
+    }
     const Chromium = await loadSparticuzChromium();
     Chromium.setGraphicsMode = false;
 
