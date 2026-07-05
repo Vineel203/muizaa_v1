@@ -8,7 +8,9 @@ cloudSqlInstances:
 runConfig:
   minInstances: 0
   maxInstances: 10
-  concurrency: 80
+  concurrency: 40
+  memoryMiB: 1024
+  cpu: 1
 
 env:
   - variable: NODE_ENV
