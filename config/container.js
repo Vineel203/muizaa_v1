@@ -9,17 +9,27 @@ const DriverRepository = require('../repositories/driverRepository');
 const TruckOwnerRepository = require('../repositories/truckOwnerRepository');
 const TruckRepository = require('../repositories/truckRepository');
 const BankingDetailRepository = require('../repositories/bankingDetailRepository');
-const GoodRepository = require('../repositories/goodRepository');
+const BookingPickupRepository = require('../repositories/bookingPickupRepository');
+const BookingDeliveryRepository = require('../repositories/bookingDeliveryRepository');
+const BookingGoodsItemRepository = require('../repositories/bookingGoodsItemRepository');
 const BookingRepository = require('../repositories/bookingRepository');
 const BookingHistoryRepository = require('../repositories/bookingHistoryRepository');
-const BookingSequenceRepository = require('../repositories/bookingSequenceRepository');
+const DocumentSequenceRepository = require('../repositories/documentSequenceRepository');
+const InvoiceRepository = require('../repositories/invoiceRepository');
+
+const GdmDocumentRepository = require('../repositories/gdmDocumentRepository');
 
 const AuthService = require('../services/authService');
 const MasterDataService = require('../services/masterDataService');
 const HistoryService = require('../services/historyService');
 const BookingService = require('../services/bookingService');
+const InvoiceService = require('../services/invoiceService');
 const DashboardService = require('../services/dashboardService');
 const EntityService = require('../services/entityService');
+const DocumentTemplateService = require('../services/documentTemplateService');
+const PdfService = require('../services/pdfService');
+const GoogleDriveService = require('../services/googleDriveService');
+const GdmDocumentService = require('../services/gdmDocumentService');
 
 function createContainer() {
   const userRepository = new UserRepository();
@@ -29,12 +39,20 @@ function createContainer() {
   const transporterRepository = new TransporterRepository();
   const driverRepository = new DriverRepository();
   const truckOwnerRepository = new TruckOwnerRepository();
-  const truckRepository = new TruckRepository();
+  const truckRepository = new TruckRepository({ driverRepository, truckOwnerRepository });
   const bankingDetailRepository = new BankingDetailRepository();
-  const goodRepository = new GoodRepository();
-  const bookingRepository = new BookingRepository();
+  const bookingPickupRepository = new BookingPickupRepository();
+  const bookingDeliveryRepository = new BookingDeliveryRepository();
+  const bookingGoodsItemRepository = new BookingGoodsItemRepository();
+  const bookingRepository = new BookingRepository({
+    bookingPickupRepository,
+    bookingDeliveryRepository,
+    bookingGoodsItemRepository,
+  });
   const bookingHistoryRepository = new BookingHistoryRepository();
-  const bookingSequenceRepository = new BookingSequenceRepository();
+  const documentSequenceRepository = new DocumentSequenceRepository();
+  const invoiceRepository = new InvoiceRepository();
+  const gdmDocumentRepository = new GdmDocumentRepository();
 
   const historyService = new HistoryService(bookingHistoryRepository);
   const masterDataService = new MasterDataService({
@@ -46,14 +64,23 @@ function createContainer() {
     truckOwnerRepository,
     truckRepository,
     bankingDetailRepository,
-    goodRepository,
   });
 
   const authService = new AuthService(userRepository);
   const bookingService = new BookingService({
     bookingRepository,
-    bookingSequenceRepository,
+    bookingPickupRepository,
+    bookingDeliveryRepository,
+    bookingGoodsItemRepository,
+    documentSequenceRepository,
+    invoiceRepository,
     masterDataService,
+    historyService,
+  });
+  const invoiceService = new InvoiceService({
+    invoiceRepository,
+    documentSequenceRepository,
+    bookingRepository,
     historyService,
   });
   const dashboardService = new DashboardService(bookingRepository);
@@ -68,6 +95,20 @@ function createContainer() {
     bookingRepository,
   });
 
+  const documentTemplateService = new DocumentTemplateService();
+  const pdfService = new PdfService();
+  const googleDriveService = new GoogleDriveService();
+  const gdmDocumentService = new GdmDocumentService({
+    bookingRepository,
+    gdmDocumentRepository,
+    documentSequenceRepository,
+    bookingService,
+    documentTemplateService,
+    pdfService,
+    googleDriveService,
+    historyService,
+  });
+
   return {
     repositories: {
       userRepository,
@@ -79,18 +120,27 @@ function createContainer() {
       truckOwnerRepository,
       truckRepository,
       bankingDetailRepository,
-      goodRepository,
+      bookingPickupRepository,
+      bookingDeliveryRepository,
+      bookingGoodsItemRepository,
       bookingRepository,
       bookingHistoryRepository,
-      bookingSequenceRepository,
+      documentSequenceRepository,
+      invoiceRepository,
+      gdmDocumentRepository,
     },
     services: {
       authService,
       masterDataService,
       historyService,
       bookingService,
+      invoiceService,
       dashboardService,
       entityService,
+      documentTemplateService,
+      pdfService,
+      googleDriveService,
+      gdmDocumentService,
     },
   };
 }

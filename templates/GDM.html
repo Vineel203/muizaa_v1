@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Goods Dispatch Memo</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:#ececec;
+    padding:30px;
+}
+
+.page{
+
+    width:210mm;
+    min-height:297mm;
+
+    margin:auto;
+
+    background:white;
+
+    padding:18mm;
+
+    box-shadow:0 0 15px rgba(0,0,0,.15);
+}
+
+.header{
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    border-bottom:3px solid #1d4ed8;
+
+    padding-bottom:12px;
+}
+
+.company{
+
+    display:flex;
+    gap:15px;
+    align-items:center;
+}
+
+.company img{
+
+    height:70px;
+}
+
+.company-info h1{
+
+    font-size:32px;
+    letter-spacing:1px;
+    color:#111;
+}
+
+.company-info p{
+
+    font-size:13px;
+    color:#555;
+    line-height:1.4;
+}
+
+.logo-right img{
+
+    height:100px;
+}
+
+.title{
+
+    text-align:center;
+
+    font-size:22px;
+
+    font-weight:bold;
+
+    margin:20px 0;
+
+    color:#1d4ed8;
+
+    letter-spacing:2px;
+}
+
+.info-grid{
+
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:15px;
+
+    margin-bottom:20px;
+}
+
+.card{
+
+    border:1px solid #ddd;
+
+    border-radius:8px;
+
+    padding:12px;
+}
+
+.card h3{
+
+    color:#1d4ed8;
+
+    margin-bottom:10px;
+
+    font-size:15px;
+}
+
+.card table{
+
+    width:100%;
+    font-size:13px;
+}
+
+.card td{
+
+    padding:3px 0;
+}
+
+.party-container{
+
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:20px;
+
+    margin-bottom:20px;
+}
+
+.party-box{
+
+    border:1px solid #ddd;
+
+    border-radius:8px;
+
+    padding:10px;
+}
+
+.party-box h3{
+
+    color:#1d4ed8;
+
+    margin-bottom:10px;
+}
+
+.party{
+
+    border-bottom:1px dashed #ddd;
+
+    padding:8px 0;
+}
+
+.party:last-child{
+
+    border:none;
+}
+
+.party strong{
+
+    display:block;
+}
+
+.goods{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    margin-top:10px;
+
+    margin-bottom:20px;
+}
+
+.goods th{
+
+    background:#1d4ed8;
+
+    color:white;
+
+    padding:10px;
+
+    font-size:13px;
+
+    border:1px solid #ddd;
+}
+
+.goods td{
+
+    border:1px solid #ddd;
+
+    padding:10px;
+
+    font-size:13px;
+
+    text-align:center;
+}
+
+.summary{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    margin-top:20px;
+}
+
+.summary .left,
+.summary .right{
+
+    width:48%;
+}
+
+.footer{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    margin-top:70px;
+}
+
+.sign{
+
+    text-align:center;
+
+    width:180px;
+}
+
+.sign img{
+
+    height:60px;
+
+    display:block;
+
+    margin:auto;
+}
+
+.line{
+
+    border-top:1px solid #444;
+
+    margin-top:5px;
+
+    padding-top:4px;
+
+    font-size:12px;
+}
+
+.watermark{
+
+    position:absolute;
+
+    top:40%;
+
+    left:20%;
+
+    opacity:.04;
+
+    z-index:0;
+}
+
+.watermark img{
+
+    width:450px;
+}
+
+.page{
+
+    position:relative;
+
+    overflow:hidden;
+}
+
+.content{
+
+    position:relative;
+
+    z-index:2;
+}
+
+@media print{
+
+body{
+background:white;
+padding:0;
+}
+
+.page{
+box-shadow:none;
+margin:0;
+width:auto;
+min-height:auto;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="page">
+
+
+<div class="content">
+
+<div class="header">
+
+<div class="company">
+
+
+<div class="company-info">
+
+<h1>MUIZAA LOGISTICS</h1>
+
+<p>
+GSTIN : 37AJOPV1603N1ZL<br>
+
+No 1-21/3, NH-44 Near RTO Checkpost Panchalingala,
+Kurnool<br>
+
+Phone : +91 91882 87695
+
+</p>
+
+</div>
+
+</div>
+
+<div class="logo-right">
+
+<img src="images/logo-right.png">
+
+</div>
+
+</div>
+
+<div class="title">
+
+GOODS DISPATCH MEMO
+
+</div>
+
+<div class="info-grid">
+
+<div class="card">
+
+<h3>Booking Details</h3>
+
+<table>
+
+<tr>
+<td><b>Memo No</b></td>
+<td>M2509231</td>
+</tr>
+
+<tr>
+<td><b>Date</b></td>
+<td>01 Sept 2025</td>
+</tr>
+
+<tr>
+<td><b>Truck</b></td>
+<td>TS01US7749</td>
+</tr>
+
+<tr>
+<td><b>Invoice</b></td>
+<td>INV-00928</td>
+</tr>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h3>Driver Details</h3>
+
+<table>
+
+<tr>
+<td><b>Driver</b></td>
+<td>Arvind</td>
+</tr>
+
+<tr>
+<td><b>Phone</b></td>
+<td>9182887695</td>
+</tr>
+
+<tr>
+<td><b>Owner</b></td>
+<td>Mustafa</td>
+</tr>
+
+<tr>
+<td><b>Phone</b></td>
+<td>9876543210</td>
+</tr>
+
+</table>
+
+</div>
+
+</div>
+
+<div class="party-container">
+
+<div class="party-box">
+
+<h3>Consignors</h3>
+
+<div class="party">
+
+<strong>Ashok Kumar Godown</strong>
+
+Ichhapur,
+Madhya Pradesh 450445
+
+</div>
+
+<div class="party">
+
+<strong>Another Consignor</strong>
+
+Hyderabad
+
+</div>
+
+</div>
+
+<div class="party-box">
+
+<h3>Consignees</h3>
+
+<div class="party">
+
+<strong>Venkateshwara Hatcheries Pvt Ltd</strong>
+
+Turkapally,
+Telangana
+
+</div>
+
+<div class="party">
+
+<strong>Another Consignee</strong>
+
+Kurnool
+
+</div>
+
+</div>
+
+</div>
+
+<table class="goods">
+
+<thead>
+
+<tr>
+
+<th>No. of Articles</th>
+
+<th>Description</th>
+
+<th>Weight</th>
+
+<th>Rate / MT</th>
+
+<th>Total Freight</th>
+
+<th>Freight Paid</th>
+
+<th>Freight Payable</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>576 Bags</td>
+
+<td>Maize</td>
+
+<td>30215 Kg</td>
+
+<td>₹900</td>
+
+<td>₹27,193</td>
+
+<td>-</td>
+
+<td><b>TO BE BILLED</b></td>
+
+</tr>
+
+<tr>
+
+<td colspan="7" style="height:180px;"></td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+<div class="summary">
+
+<div class="left">
+
+<b>Carrier's Risk</b>
+
+</div>
+
+<div class="right" style="text-align:right">
+
+<b>For MUIZAA LOGISTICS</b>
+
+</div>
+
+</div>
+
+<div class="footer">
+
+<div class="sign">
+
+<div style="height:60px"></div>
+
+<div class="line">
+
+Driver Signature
+
+</div>
+
+</div>
+
+<div class="sign">
+
+<img src="images/company-signature.png">
+
+<div class="line">
+
+Authorized Signatory
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</body>
+</html>

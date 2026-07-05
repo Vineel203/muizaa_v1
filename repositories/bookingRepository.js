@@ -1,16 +1,36 @@
 'use strict';
 
 const { query } = require('../utils/db');
-const { mapRowToCamel, mapRowsToCamel } = require('../utils/helpers');
+const { mapRowToCamel, mapRowsToCamel, attachGoodsFinanceTotals } = require('../utils/helpers');
+
+const GOODS_TOTALS_SELECT = `
+    (
+      SELECT COALESCE(SUM(bgi.company_freight), 0)::float
+      FROM booking_goods_items bgi WHERE bgi.booking_id = b.id
+    ) AS total_company_freight,
+    (
+      SELECT COALESCE(SUM(bgi.advance), 0)::float
+      FROM booking_goods_items bgi WHERE bgi.booking_id = b.id
+    ) AS total_advance,
+    (
+      SELECT COALESCE(SUM(bgi.loading_hamali), 0)::float
+      FROM booking_goods_items bgi WHERE bgi.booking_id = b.id
+    ) AS total_loading_hamali,
+    (
+      SELECT COALESCE(SUM(bgi.unloading_hamali), 0)::float
+      FROM booking_goods_items bgi WHERE bgi.booking_id = b.id
+    ) AS total_unloading_hamali,
+    (
+      SELECT COALESCE(SUM(bgi.balance), 0)::float
+      FROM booking_goods_items bgi WHERE bgi.booking_id = b.id
+    ) AS total_balance
+`;
 
 const BOOKING_SELECT = `
   SELECT
     b.*,
-    fl.name AS from_location_name,
-    tl.name AS to_location_name,
-    co.name AS consignor_name,
-    ce.name AS consignee_name,
     tr.name AS transporter_name,
+    tr.phone_number AS transporter_phone_number,
     dr.name AS driver_name,
     dr.number AS driver_number,
     tk.number AS truck_number,
@@ -20,28 +40,71 @@ const BOOKING_SELECT = `
     bd.bank_name,
     bd.account_number,
     bd.ifsc,
-    g.name AS good_name
+    inv.invoice_number,
+    (
+      SELECT STRING_AGG(l.name, ', ' ORDER BY bp.sort_order, bp.id)
+      FROM booking_pickups bp
+      LEFT JOIN locations l ON bp.location_id = l.id
+      WHERE bp.booking_id = b.id AND l.name IS NOT NULL
+    ) AS from_location_name,
+    (
+      SELECT STRING_AGG(l.name, ', ' ORDER BY bd2.sort_order, bd2.id)
+      FROM booking_deliveries bd2
+      LEFT JOIN locations l ON bd2.location_id = l.id
+      WHERE bd2.booking_id = b.id AND l.name IS NOT NULL
+    ) AS to_location_name,
+    (
+      SELECT STRING_AGG(c.name, ', ' ORDER BY bp.sort_order, bp.id)
+      FROM booking_pickups bp
+      LEFT JOIN consignors c ON bp.consignor_id = c.id
+      WHERE bp.booking_id = b.id AND c.name IS NOT NULL
+    ) AS consignor_name,
+    (
+      SELECT STRING_AGG(c.name, ', ' ORDER BY bd2.sort_order, bd2.id)
+      FROM booking_deliveries bd2
+      LEFT JOIN consignees c ON bd2.consignee_id = c.id
+      WHERE bd2.booking_id = b.id AND c.name IS NOT NULL
+    ) AS consignee_name,
+    ${GOODS_TOTALS_SELECT}
   FROM bookings b
-  LEFT JOIN locations fl ON b.from_location_id = fl.id
-  LEFT JOIN locations tl ON b.to_location_id = tl.id
-  LEFT JOIN consignors co ON b.consignor_id = co.id
-  LEFT JOIN consignees ce ON b.consignee_id = ce.id
   LEFT JOIN transporters tr ON b.transporter_id = tr.id
   LEFT JOIN drivers dr ON b.driver_id = dr.id
   LEFT JOIN trucks tk ON b.truck_id = tk.id
   LEFT JOIN truck_owners tow ON b.truck_owner_id = tow.id
   LEFT JOIN banking_details bd ON b.banking_detail_id = bd.id
-  LEFT JOIN goods g ON b.good_id = g.id
+  LEFT JOIN invoices inv ON b.invoice_id = inv.id
 `;
 
 class BookingRepository {
+  constructor({ bookingPickupRepository, bookingDeliveryRepository, bookingGoodsItemRepository } = {}) {
+    this.bookingPickupRepository = bookingPickupRepository;
+    this.bookingDeliveryRepository = bookingDeliveryRepository;
+    this.bookingGoodsItemRepository = bookingGoodsItemRepository;
+  }
+
+  async attachChildren(booking, client = null) {
+    if (!booking) return null;
+    const [pickups, deliveries, goodsItems] = await Promise.all([
+      this.bookingPickupRepository.findByBookingId(booking.id, client),
+      this.bookingDeliveryRepository.findByBookingId(booking.id, client),
+      this.bookingGoodsItemRepository.findByBookingId(booking.id, client),
+    ]);
+    return attachGoodsFinanceTotals({
+      ...booking,
+      pickups,
+      deliveries,
+      goodsItems,
+    });
+  }
+
   async findById(id, client = null) {
     const executor = client || { query };
     const result = await executor.query(
       `${BOOKING_SELECT} WHERE b.id = $1`,
       [id]
     );
-    return mapRowToCamel(result.rows[0]);
+    const booking = mapRowToCamel(result.rows[0]);
+    return this.attachChildren(booking, client);
   }
 
   async findByBookingId(bookingId, client = null) {
@@ -50,7 +113,8 @@ class BookingRepository {
       `${BOOKING_SELECT} WHERE b.booking_id = $1`,
       [bookingId]
     );
-    return mapRowToCamel(result.rows[0]);
+    const booking = mapRowToCamel(result.rows[0]);
+    return this.attachChildren(booking, client);
   }
 
   async create(data, client = null) {
@@ -100,8 +164,18 @@ class BookingRepository {
         COUNT(*) FILTER (WHERE booking_id IS NOT NULL AND created_at >= CURRENT_DATE)::int AS todays_generated_ids,
         COUNT(*) FILTER (WHERE stage = 'UNLOAD' AND is_unload_complete = false)::int AS pending_unload,
         COUNT(*) FILTER (WHERE is_finance_complete = false AND stage NOT IN ('PARKING_LOT', 'ARCHIVED'))::int AS pending_finance,
-        COALESCE(SUM(rate) FILTER (WHERE stage NOT IN ('PARKING_LOT', 'ARCHIVED')), 0)::float AS total_freight,
-        COALESCE(SUM(company_freight) FILTER (WHERE stage NOT IN ('PARKING_LOT', 'ARCHIVED')), 0)::float AS total_company_freight,
+        COALESCE((
+          SELECT SUM(bgi.company_freight)
+          FROM booking_goods_items bgi
+          JOIN bookings bk ON bk.id = bgi.booking_id
+          WHERE bk.stage NOT IN ('PARKING_LOT', 'ARCHIVED')
+        ), 0)::float AS total_freight,
+        COALESCE((
+          SELECT SUM(bgi.company_freight)
+          FROM booking_goods_items bgi
+          JOIN bookings bk ON bk.id = bgi.booking_id
+          WHERE bk.stage NOT IN ('PARKING_LOT', 'ARCHIVED')
+        ), 0)::float AS total_company_freight,
         COUNT(DISTINCT driver_id) FILTER (WHERE stage IN ('ON_ROAD', 'UNLOAD') AND driver_id IS NOT NULL)::int AS active_drivers,
         COUNT(DISTINCT truck_id) FILTER (WHERE stage IN ('ON_ROAD', 'UNLOAD') AND truck_id IS NOT NULL)::int AS active_trucks
       FROM bookings
@@ -110,20 +184,29 @@ class BookingRepository {
   }
 
   async findByEntityFilter(entityType, entityId, { currentOnly = false } = {}) {
-    const columnMap = {
-      driver: 'driver_id',
-      truck: 'truck_id',
-      transporter: 'transporter_id',
-      consignor: 'consignor_id',
-      consignee: 'consignee_id',
-      location: 'from_location_id',
-      owner: 'truck_owner_id',
+    const filterMap = {
+      driver: 'b.driver_id = $1',
+      truck: 'b.truck_id = $1',
+      transporter: 'b.transporter_id = $1',
+      consignor: `EXISTS (
+        SELECT 1 FROM booking_pickups bp
+        WHERE bp.booking_id = b.id AND bp.consignor_id = $1
+      )`,
+      consignee: `EXISTS (
+        SELECT 1 FROM booking_deliveries bd
+        WHERE bd.booking_id = b.id AND bd.consignee_id = $1
+      )`,
+      location: `(
+        EXISTS (SELECT 1 FROM booking_pickups bp WHERE bp.booking_id = b.id AND bp.location_id = $1)
+        OR EXISTS (SELECT 1 FROM booking_deliveries bd WHERE bd.booking_id = b.id AND bd.location_id = $1)
+      )`,
+      owner: 'b.truck_owner_id = $1',
     };
 
-    const column = columnMap[entityType];
-    if (!column) return [];
+    const condition = filterMap[entityType];
+    if (!condition) return [];
 
-    let sql = `${BOOKING_SELECT} WHERE b.${column} = $1`;
+    let sql = `${BOOKING_SELECT} WHERE ${condition}`;
     const params = [entityId];
 
     if (currentOnly) {
@@ -139,25 +222,32 @@ class BookingRepository {
   }
 
   async getEntityStats(entityType, entityId) {
-    const columnMap = {
-      driver: 'driver_id',
-      truck: 'truck_id',
-      transporter: 'transporter_id',
-      consignor: 'consignor_id',
-      consignee: 'consignee_id',
-      location: 'from_location_id',
-      owner: 'truck_owner_id',
+    const filterMap = {
+      driver: 'driver_id = $1',
+      truck: 'truck_id = $1',
+      transporter: 'transporter_id = $1',
+      consignor: `id IN (SELECT booking_id FROM booking_pickups WHERE consignor_id = $1)`,
+      consignee: `id IN (SELECT booking_id FROM booking_deliveries WHERE consignee_id = $1)`,
+      location: `(
+        id IN (SELECT booking_id FROM booking_pickups WHERE location_id = $1)
+        OR id IN (SELECT booking_id FROM booking_deliveries WHERE location_id = $1)
+      )`,
+      owner: 'truck_owner_id = $1',
     };
 
-    const column = columnMap[entityType];
-    if (!column) return null;
+    const condition = filterMap[entityType];
+    if (!condition) return null;
 
     const result = await query(
       `SELECT
         COUNT(*)::int AS total_trips,
-        COALESCE(SUM(rate), 0)::float AS total_freight,
+        COALESCE((
+          SELECT SUM(bgi.company_freight)
+          FROM booking_goods_items bgi
+          WHERE bgi.booking_id IN (SELECT id FROM bookings WHERE ${condition})
+        ), 0)::float AS total_freight,
         COUNT(*) FILTER (WHERE stage NOT IN ('DONE', 'ARCHIVED'))::int AS current_bookings
-       FROM bookings WHERE ${column} = $1`,
+       FROM bookings WHERE ${condition}`,
       [entityId]
     );
     return mapRowToCamel(result.rows[0]);
@@ -215,13 +305,29 @@ class BookingRepository {
     if (search) {
       conditions.push(`(
         b.booking_id ILIKE $${paramIndex}
-        OR fl.name ILIKE $${paramIndex}
-        OR tl.name ILIKE $${paramIndex}
-        OR co.name ILIKE $${paramIndex}
-        OR ce.name ILIKE $${paramIndex}
         OR tr.name ILIKE $${paramIndex}
         OR dr.name ILIKE $${paramIndex}
         OR tk.number ILIKE $${paramIndex}
+        OR EXISTS (
+          SELECT 1 FROM booking_pickups bp
+          JOIN locations l ON bp.location_id = l.id
+          WHERE bp.booking_id = b.id AND l.name ILIKE $${paramIndex}
+        )
+        OR EXISTS (
+          SELECT 1 FROM booking_deliveries bd
+          JOIN locations l ON bd.location_id = l.id
+          WHERE bd.booking_id = b.id AND l.name ILIKE $${paramIndex}
+        )
+        OR EXISTS (
+          SELECT 1 FROM booking_pickups bp
+          JOIN consignors c ON bp.consignor_id = c.id
+          WHERE bp.booking_id = b.id AND c.name ILIKE $${paramIndex}
+        )
+        OR EXISTS (
+          SELECT 1 FROM booking_deliveries bd
+          JOIN consignees c ON bd.consignee_id = c.id
+          WHERE bd.booking_id = b.id AND c.name ILIKE $${paramIndex}
+        )
       )`);
       params.push(`%${search}%`);
       paramIndex++;
@@ -232,11 +338,12 @@ class BookingRepository {
     const allowedColumns = {
       booking_id: 'b.booking_id',
       stage: 'b.stage',
-      from_location_name: 'fl.name',
-      to_location_name: 'tl.name',
+      from_location_name: 'from_location_name',
+      to_location_name: 'to_location_name',
       transporter_name: 'tr.name',
       driver_name: 'dr.name',
       truck_number: 'tk.number',
+      total_company_freight: 'total_company_freight',
       created_at: 'b.created_at',
       updated_at: 'b.updated_at',
     };
@@ -247,10 +354,6 @@ class BookingRepository {
     const countResult = await query(
       `SELECT COUNT(*)::int AS total
        FROM bookings b
-       LEFT JOIN locations fl ON b.from_location_id = fl.id
-       LEFT JOIN locations tl ON b.to_location_id = tl.id
-       LEFT JOIN consignors co ON b.consignor_id = co.id
-       LEFT JOIN consignees ce ON b.consignee_id = ce.id
        LEFT JOIN transporters tr ON b.transporter_id = tr.id
        LEFT JOIN drivers dr ON b.driver_id = dr.id
        LEFT JOIN trucks tk ON b.truck_id = tk.id
@@ -271,6 +374,18 @@ class BookingRepository {
       filtered: countResult.rows[0].total,
       data: mapRowsToCamel(dataResult.rows),
     };
+  }
+
+  async isBookingIdTaken(bookingId, excludeId = null, client = null) {
+    const executor = client || { query };
+    const params = [bookingId];
+    let sql = 'SELECT id FROM bookings WHERE booking_id = $1';
+    if (excludeId) {
+      sql += ' AND id != $2';
+      params.push(excludeId);
+    }
+    const result = await executor.query(sql, params);
+    return result.rows.length > 0;
   }
 }
 

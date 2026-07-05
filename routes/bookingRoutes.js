@@ -2,11 +2,13 @@
 
 const express = require('express');
 const BookingController = require('../controllers/bookingController');
+const GdmDocumentController = require('../controllers/gdmDocumentController');
 const { requireAuth } = require('../middlewares/authMiddleware');
 const { requirePermission } = require('../middlewares/permissionMiddleware');
 
 const router = express.Router();
 const bookingController = new BookingController();
+const gdmDocumentController = new GdmDocumentController();
 
 router.get(
   '/bookings',
@@ -62,6 +64,48 @@ router.post(
   requireAuth,
   requirePermission('MANAGE_BOOKINGS'),
   bookingController.transitionStage.bind(bookingController)
+);
+
+router.post(
+  '/bookings/:id/gdm',
+  requireAuth,
+  requirePermission('MANAGE_BOOKINGS'),
+  bookingController.generateGdm.bind(bookingController)
+);
+
+router.get(
+  '/bookings/:id/gdm/generate',
+  requireAuth,
+  requirePermission('MANAGE_BOOKINGS'),
+  gdmDocumentController.generateForm.bind(gdmDocumentController)
+);
+
+router.post(
+  '/bookings/:id/gdm/generate',
+  requireAuth,
+  requirePermission('MANAGE_BOOKINGS'),
+  gdmDocumentController.generatePdf.bind(gdmDocumentController)
+);
+
+router.post(
+  '/bookings/:id/gdm/number',
+  requireAuth,
+  requirePermission('MANAGE_BOOKINGS'),
+  gdmDocumentController.assignGdmNumber.bind(gdmDocumentController)
+);
+
+router.get(
+  '/bookings/:id/gdm/documents/:documentId/download',
+  requireAuth,
+  requirePermission('MANAGE_BOOKINGS'),
+  gdmDocumentController.download.bind(gdmDocumentController)
+);
+
+router.get(
+  '/bookings/:id/gdm/documents/:documentId/view',
+  requireAuth,
+  requirePermission('MANAGE_BOOKINGS'),
+  gdmDocumentController.view.bind(gdmDocumentController)
 );
 
 module.exports = router;

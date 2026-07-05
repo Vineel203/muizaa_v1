@@ -7,11 +7,15 @@
     <a href="/dashboard" class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>">
       <i class="bi bi-speedometer2"></i> Dashboard
     </a>
+    <div class="nav-section-label">Bookings</div>
     <a href="/bookings" class="nav-link <%= currentPath.startsWith('/bookings') ? 'active' : '' %>">
-      <i class="bi bi-journal-text"></i> Bookings
+      <i class="bi bi-journal-text"></i> All Bookings
     </a>
     <a href="/bookings/new" class="nav-link <%= currentPath === '/bookings/new' ? 'active' : '' %>">
       <i class="bi bi-plus-circle"></i> New Entry
+    </a>
+    <a href="/invoices" class="nav-link <%= currentPath.startsWith('/invoices') ? 'active' : '' %>">
+      <i class="bi bi-receipt"></i> Invoices
     </a>
   </nav>
   <div class="sidebar-footer">

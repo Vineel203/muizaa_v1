@@ -37,7 +37,14 @@ function createApp() {
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
   }));
-  app.use(compression());
+  app.use(compression({
+    filter: (req, res) => {
+      if (/\/gdm\/(generate|documents\/)/.test(req.path)) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+  }));
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
   app.use(cookieParser());
@@ -79,9 +86,13 @@ function createApp() {
         'truck_owners',
         'trucks',
         'banking_details',
-        'goods',
-        'booking_sequences',
+        'document_sequences',
+        'invoices',
         'bookings',
+        'booking_pickups',
+        'booking_deliveries',
+        'booking_goods_items',
+        'gdm_documents',
         'booking_history',
       ];
 

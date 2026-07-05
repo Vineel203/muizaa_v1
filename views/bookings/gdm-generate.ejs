@@ -1,0 +1,455 @@
+<%
+  const b = booking || {};
+  const fd = formDefaults || {};
+  const rawPickups = fd.pickups && fd.pickups.length ? fd.pickups : [{ fromLocation: '', consignor: '' }];
+  const rawDeliveries = fd.deliveries && fd.deliveries.length ? fd.deliveries : [{ toLocation: '', consignee: '' }];
+  const routeCount = Math.max(rawPickups.length, rawDeliveries.length, 1);
+  const routes = [];
+  for (let ri = 0; ri < routeCount; ri += 1) {
+    const p = rawPickups[ri] || {};
+    const d = rawDeliveries[ri] || {};
+    routes.push({
+      fromLocation: p.fromLocation || p.locationName || '',
+      consignor: p.consignor || p.consignorName || '',
+      toLocation: d.toLocation || d.locationName || '',
+      consignee: d.consignee || d.consigneeName || '',
+    });
+  }
+  const goodsItems = fd.goodsItems && fd.goodsItems.length ? fd.goodsItems : [{
+    description: '', packages: '', packageName: 'Bags', weightKgs: '',
+    ratePerMt: '', totalFreight: '-', freightPaid: '-', freightPayable: 'TO BE BILLED',
+  }];
+%>
+
+<div class="page-header d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="/bookings">Bookings</a></li>
+        <li class="breadcrumb-item"><a href="/bookings/<%= b.id %>"><%= b.bookingId || 'Parking Lot #' + b.id %></a></li>
+        <li class="breadcrumb-item active">Generate GDM</li>
+      </ol>
+    </nav>
+    <h1 class="page-title mb-1">Generate Goods Dispatch Memo</h1>
+    <p class="text-muted mb-0">Review and edit document fields. Changes here do not update the booking.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/bookings/<%= b.id %>" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Back to Booking
+    </a>
+  </div>
+</div>
+
+<form id="gdmGenerateForm" method="POST" action="/bookings/<%= b.id %>/gdm/generate">
+  <input type="hidden" name="goodsRemark" value="<%= fd.goodsRemark || '' %>">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="accordion booking-accordion" id="gdmAccordion">
+
+        <!-- GDM Specific Information -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionSpecific">
+              <i class="bi bi-file-earmark-pdf me-2"></i> GDM Specific Information
+            </button>
+          </h2>
+          <div id="gdmSectionSpecific" class="accordion-collapse collapse show" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">GDM Number (Memo No)</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="gdmNumberInput" name="gdmNumber"
+                           value="<%= fd.gdmNumber || '' %>" placeholder="e.g. G2607001">
+                    <button type="button" class="btn btn-outline-primary" id="generateGdmNumberBtn"
+                            title="Generate next GDM number from sequence">
+                      Generate
+                    </button>
+                  </div>
+                  <div class="form-text">Editable for this document. <strong>Generate</strong> assigns the next number to the booking.</div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Invoice Number <span class="text-muted">(optional)</span></label>
+                  <input type="text" class="form-control" name="invoiceNumber" value="<%= fd.invoiceNumber || '' %>">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Booking ID</label>
+                  <input type="text" class="form-control" name="bookingId" value="<%= fd.bookingId || '' %>"
+                         placeholder="e.g. M202607001">
+                  <div class="form-text">Used on the PDF and for file naming. Does not update the booking.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking Information -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionBooking">
+              <i class="bi bi-info-circle me-2"></i> Booking Information
+            </button>
+          </h2>
+          <div id="gdmSectionBooking" class="accordion-collapse collapse" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Stage</label>
+                  <input type="text" class="form-control" value="<%= STAGE_LABELS[fd.stage] || fd.stage || '—' %>" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Serial Number</label>
+                  <input type="text" class="form-control" value="<%= fd.serialNumber || '' %>" readonly>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pickup & Delivery Details -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionRoute">
+              <i class="bi bi-signpost-split me-2"></i> Pickup &amp; Delivery Details
+            </button>
+          </h2>
+          <div id="gdmSectionRoute" class="accordion-collapse collapse show" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <p class="text-muted small mb-3">Each row is one pickup and delivery point pair (From Location, Consignor, To Location, Consignee).</p>
+              <div id="gdmRouteRows">
+                <% routes.forEach(function(r, i) { %>
+                  <div class="card card-body mb-3 border gdm-route-row">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="fw-semibold text-muted small row-label">Point <%= i + 1 %></span>
+                      <button type="button" class="btn btn-sm btn-outline-danger gdm-remove-route-btn" title="Remove point">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">From Location</label>
+                        <input type="text" class="form-control" name="pickups[<%= i %>][fromLocation]" value="<%= r.fromLocation %>">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Consignor</label>
+                        <input type="text" class="form-control" name="pickups[<%= i %>][consignor]" value="<%= r.consignor %>">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">To Location</label>
+                        <input type="text" class="form-control" name="deliveries[<%= i %>][toLocation]" value="<%= r.toLocation %>">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Consignee</label>
+                        <input type="text" class="form-control" name="deliveries[<%= i %>][consignee]" value="<%= r.consignee %>">
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="addGdmRouteRow">
+                <i class="bi bi-plus-lg me-1"></i> Add Pickup Point
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vehicle Information -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionVehicle">
+              <i class="bi bi-truck me-2"></i> Vehicle Information
+            </button>
+          </h2>
+          <div id="gdmSectionVehicle" class="accordion-collapse collapse" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Truck Number</label>
+                  <input type="text" class="form-control" name="truckNumber" value="<%= fd.truckNumber || '' %>">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Capacity</label>
+                  <input type="text" class="form-control" value="<%= fd.truckCapacity ?? '' %>" readonly>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Driver Information -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionDriver">
+              <i class="bi bi-person-badge me-2"></i> Driver Information
+            </button>
+          </h2>
+          <div id="gdmSectionDriver" class="accordion-collapse collapse" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Driver Name</label>
+                  <input type="text" class="form-control" name="driverName" value="<%= fd.driverName || '' %>">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Driver Number</label>
+                  <input type="text" class="form-control" name="driverNumber" value="<%= fd.driverNumber || '' %>">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Owner Information -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionOwner">
+              <i class="bi bi-person me-2"></i> Owner Information
+            </button>
+          </h2>
+          <div id="gdmSectionOwner" class="accordion-collapse collapse" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Owner Name</label>
+                  <input type="text" class="form-control" name="truckOwnerName" value="<%= fd.truckOwnerName || '' %>">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Owner Number</label>
+                  <input type="text" class="form-control" name="truckOwnerNumber" value="<%= fd.truckOwnerNumber || '' %>">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Goods Information -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionGoods">
+              <i class="bi bi-box-seam me-2"></i> Goods Information
+            </button>
+          </h2>
+          <div id="gdmSectionGoods" class="accordion-collapse collapse show" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div id="gdmGoodsRows">
+                <% goodsItems.forEach(function(g, i) { %>
+                  <div class="card card-body mb-3 border gdm-goods-row">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="fw-semibold text-muted small">Goods <%= i + 1 %></span>
+                      <button type="button" class="btn btn-sm btn-outline-danger gdm-remove-goods-btn" title="Remove">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" name="goodsItems[<%= i %>][description]" value="<%= g.description || '' %>">
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Packages</label>
+                        <input type="number" step="1" min="0" class="form-control" name="goodsItems[<%= i %>][packages]" value="<%= g.packages ?? '' %>">
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Package Name</label>
+                        <input type="text" class="form-control" name="goodsItems[<%= i %>][packageName]" list="gdmPackageNameOptions" value="<%= g.packageName || 'Bags' %>">
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Weight (Kgs)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" name="goodsItems[<%= i %>][weightKgs]" value="<%= g.weightKgs ?? '' %>">
+                      </div>
+                      <div class="col-12"><hr class="my-1"><small class="text-muted">GDM document fields (not saved to booking)</small></div>
+                      <div class="col-md-3">
+                        <label class="form-label">Rate / MT</label>
+                        <input type="text" class="form-control" name="goodsItems[<%= i %>][ratePerMt]" value="<%= g.ratePerMt || '' %>" placeholder="Empty">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Total Freight</label>
+                        <input type="text" class="form-control" name="goodsItems[<%= i %>][totalFreight]" value="<%= g.totalFreight || '-' %>">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Freight Paid</label>
+                        <input type="text" class="form-control" name="goodsItems[<%= i %>][freightPaid]" value="<%= g.freightPaid || '-' %>">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Freight Payable</label>
+                        <input type="text" class="form-control" name="goodsItems[<%= i %>][freightPayable]" value="<%= g.freightPayable || 'TO BE BILLED' %>">
+                      </div>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="addGdmGoodsRow">
+                <i class="bi bi-plus-lg me-1"></i> Add Goods Item
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transporter Information -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionTransporter">
+              <i class="bi bi-building me-2"></i> Transporter Information
+            </button>
+          </h2>
+          <div id="gdmSectionTransporter" class="accordion-collapse collapse" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Transporter</label>
+                  <input type="text" class="form-control" name="transporterName" value="<%= fd.transporterName || '' %>">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  <input type="text" class="form-control" name="transporterPhone" value="<%= fd.transporterPhone || '' %>">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Finance Information (read-only reference) -->
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gdmSectionFinance">
+              <i class="bi bi-currency-rupee me-2"></i> Finance Information <span class="text-muted small ms-2">(reference only)</span>
+            </button>
+          </h2>
+          <div id="gdmSectionFinance" class="accordion-collapse collapse" data-bs-parent="#gdmAccordion">
+            <div class="accordion-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Total Company Freight</label>
+                  <input type="text" class="form-control" value="<%= fd.totalCompanyFreight ?? '' %>" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Lorry Freight Paid</label>
+                  <input type="text" class="form-control" value="<%= fd.lorryFreightPaid ?? '' %>" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Net Company Freight</label>
+                  <input type="text" class="form-control" value="<%= (fd.totalCompanyFreight || 0) - (fd.lorryFreightPaid || 0) %>" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Total Advance</label>
+                  <input type="text" class="form-control" value="<%= fd.totalAdvance ?? '' %>" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Total Balance</label>
+                  <input type="text" class="form-control" value="<%= fd.totalBalance ?? '' %>" readonly>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Finance Remark</label>
+                  <textarea class="form-control" rows="2" readonly><%= fd.financeRemark || '' %></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm sticky-top" style="top: 1rem;">
+        <div class="card-header"><i class="bi bi-file-earmark-pdf me-2"></i>Generate PDF</div>
+        <div class="card-body">
+          <p class="text-muted small">
+            The GDM date will be set to the moment you click <strong>Generate PDF</strong>.
+            Document-specific freight fields are editable per goods item above.
+          </p>
+          <div id="gdmGenerateAlert" class="alert d-none" role="alert"></div>
+          <button type="submit" class="btn btn-success w-100" id="generatePdfBtn">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Generate PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<datalist id="gdmPackageNameOptions">
+  <% (packageNameOptions || []).forEach(function(opt) { %>
+    <option value="<%= opt %>"></option>
+  <% }); %>
+</datalist>
+
+<template id="gdmRouteRowTemplate">
+  <div class="card card-body mb-3 border gdm-route-row">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="fw-semibold text-muted small row-label">Point</span>
+      <button type="button" class="btn btn-sm btn-outline-danger gdm-remove-route-btn" title="Remove point">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">From Location</label>
+        <input type="text" class="form-control" data-array="pickups" data-name="fromLocation">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Consignor</label>
+        <input type="text" class="form-control" data-array="pickups" data-name="consignor">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">To Location</label>
+        <input type="text" class="form-control" data-array="deliveries" data-name="toLocation">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Consignee</label>
+        <input type="text" class="form-control" data-array="deliveries" data-name="consignee">
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="gdmGoodsRowTemplate">
+  <div class="card card-body mb-3 border gdm-goods-row">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="fw-semibold text-muted small row-label">Goods</span>
+      <button type="button" class="btn btn-sm btn-outline-danger gdm-remove-goods-btn" title="Remove">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Description</label>
+        <input type="text" class="form-control" data-name="description">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Packages</label>
+        <input type="number" step="1" min="0" class="form-control" data-name="packages">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Package Name</label>
+        <input type="text" class="form-control" data-name="packageName" list="gdmPackageNameOptions" value="Bags">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Weight (Kgs)</label>
+        <input type="number" step="0.01" min="0" class="form-control" data-name="weightKgs">
+      </div>
+      <div class="col-12"><hr class="my-1"><small class="text-muted">GDM document fields (not saved to booking)</small></div>
+      <div class="col-md-3">
+        <label class="form-label">Rate / MT</label>
+        <input type="text" class="form-control" data-name="ratePerMt" placeholder="Empty">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Total Freight</label>
+        <input type="text" class="form-control" data-name="totalFreight" value="-">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Freight Paid</label>
+        <input type="text" class="form-control" data-name="freightPaid" value="-">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Freight Payable</label>
+        <input type="text" class="form-control" data-name="freightPayable" value="TO BE BILLED">
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  window.GDM_BOOKING_ID = <%= b.id %>;
+</script>
+<script src="/js/gdm-generate.js"></script>

@@ -47,8 +47,8 @@ $(document).ready(function () {
       { data: 'driver', name: 'driver_name' },
       { data: 'truck', name: 'truck_number' },
       {
-        data: 'rate',
-        name: 'rate',
+        data: 'totalCompanyFreight',
+        name: 'total_company_freight',
         render: function (data) {
           return data !== '—' && data != null ? '₹' + Number(data).toLocaleString('en-IN') : '—';
         },

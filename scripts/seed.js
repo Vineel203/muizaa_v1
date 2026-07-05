@@ -4,9 +4,16 @@ require('../config/env');
 
 const { getContainer } = require('../config/container');
 const { initDatabase, closePool } = require('../utils/db');
+const { seedDevData } = require('./seed-dev-data');
+
+function shouldSeedDevData() {
+  return process.argv.includes('--dev')
+    || process.env.SEED_DEV_DATA === 'yes'
+    || process.env.SEED_DEV_DATA === 'true';
+}
 
 async function seed() {
-  await initDatabase();
+  const pool = await initDatabase();
   const { authService } = getContainer().services;
 
   const email = process.env.ADMIN_EMAIL || 'admin@muizaa.com';
@@ -24,6 +31,13 @@ async function seed() {
     } else {
       throw error;
     }
+  }
+
+  if (shouldSeedDevData()) {
+    console.log('Seeding development sample data...');
+    await seedDevData(pool);
+  } else {
+    console.log('Skipping dev data (use --dev or SEED_DEV_DATA=yes to include sample data).');
   }
 
   await closePool();

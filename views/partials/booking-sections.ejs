@@ -3,10 +3,42 @@
   const ro = typeof readOnly !== 'undefined' && readOnly;
   const isEditable = typeof editable !== 'undefined' ? editable : false;
   const disabled = ro && !isEditable;
+  const isParkingLot = !b.stage || b.stage === 'PARKING_LOT';
+  const isEditMode = typeof isEdit !== 'undefined' && isEdit;
+
+  const rawPickups = (b.pickups && b.pickups.length)
+    ? b.pickups
+    : [{ fromLocation: b.fromLocation || '', consignor: b.consignor || '', locationName: b.fromLocationName, consignorName: b.consignorName }];
+
+  const rawDeliveries = (b.deliveries && b.deliveries.length)
+    ? b.deliveries
+    : [{ toLocation: b.toLocation || '', consignee: b.consignee || '', locationName: b.toLocationName, consigneeName: b.consigneeName }];
+
+  const routeCount = Math.max(rawPickups.length, rawDeliveries.length, 1);
+  const routes = [];
+  for (let ri = 0; ri < routeCount; ri += 1) {
+    const p = rawPickups[ri] || {};
+    const d = rawDeliveries[ri] || {};
+    routes.push({
+      fromLocation: p.locationName || p.fromLocation || '',
+      consignor: p.consignorName || p.consignor || '',
+      toLocation: d.locationName || d.toLocation || '',
+      consignee: d.consigneeName || d.consignee || '',
+      locationId: p.locationId,
+      consignorId: p.consignorId,
+      consigneeId: d.consigneeId,
+      deliveryLocationId: d.locationId,
+    });
+  }
+
+  const goodsItems = (b.goodsItems && b.goodsItems.length)
+    ? b.goodsItems
+    : [{ description: b.descriptionOfGoods || '', packages: b.quantity || '', weight: b.weightKgs || '' }];
 %>
 
 <div class="accordion booking-accordion" id="bookingAccordion">
-  <!-- General Information -->
+  <% if (!isParkingLot) { %>
+  <!-- General Information (hidden at Parking Lot stage) -->
   <div class="accordion-item">
     <h2 class="accordion-header">
       <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sectionGeneral">
@@ -18,7 +50,15 @@
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label">Booking ID</label>
-            <input type="text" class="form-control" value="<%= b.bookingId || 'Generated on On Road' %>" readonly>
+            <% if (isEditMode && !disabled) { %>
+              <input type="text" name="bookingId" class="form-control" value="<%= b.bookingId || '' %>" placeholder="MYYYYMMSSS">
+            <% } else { %>
+              <input type="text" class="form-control" value="<%= b.bookingId || 'Generated on On Road' %>" readonly>
+            <% } %>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">GDM Number</label>
+            <input type="text" class="form-control" value="<%= b.gdmNumber || '—' %>" readonly>
           </div>
           <div class="col-md-4">
             <label class="form-label">Stage</label>
@@ -30,84 +70,92 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">Invoice Number</label>
-            <input type="text" name="invoiceNumber" class="form-control" value="<%= b.invoiceNumber || '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Courier</label>
-            <input type="text" name="courier" class="form-control" value="<%= b.courier || '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Pickup Details -->
-  <div class="accordion-item">
-    <h2 class="accordion-header">
-      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionPickup">
-        <i class="bi bi-geo-alt me-2"></i> Pickup Details
-      </button>
-    </h2>
-    <div id="sectionPickup" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
-      <div class="accordion-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">From Location</label>
-            <% if (disabled) { %>
-              <% if (b.fromLocationId) { %><a href="/entities/location/<%= b.fromLocationId %>"><%= b.fromLocationName %></a><% } else { %>—<% } %>
-              <input type="hidden" name="fromLocation" value="<%= b.fromLocationName || '' %>">
+            <% if (b.invoiceId) { %>
+              <% if (isEditMode && !disabled) { %>
+                <input type="text" name="invoiceNumber" class="form-control" value="<%= b.invoiceNumber || '' %>">
+                <div class="form-text"><a href="/invoices/<%= b.invoiceId %>">View invoice</a></div>
+              <% } else { %>
+                <div class="form-control-plaintext">
+                  <a href="/invoices/<%= b.invoiceId %>"><%= b.invoiceNumber || '—' %></a>
+                </div>
+              <% } %>
             <% } else { %>
-              <input type="text" name="fromLocation" class="form-control autocomplete-input"
-                     data-type="location" value="<%= b.fromLocationName || '' %>" autocomplete="off">
-            <% } %>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Consignor</label>
-            <% if (disabled) { %>
-              <% if (b.consignorId) { %><a href="/entities/consignor/<%= b.consignorId %>"><%= b.consignorName %></a><% } else { %>—<% } %>
-            <% } else { %>
-              <input type="text" name="consignor" class="form-control autocomplete-input"
-                     data-type="consignor" value="<%= b.consignorName || '' %>" autocomplete="off">
+              <input type="text" class="form-control" value="Not invoiced" readonly>
             <% } %>
           </div>
         </div>
       </div>
     </div>
   </div>
+  <% } %>
 
-  <!-- Delivery Details -->
+  <!-- Pickup & Delivery Details -->
   <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionDelivery">
-        <i class="bi bi-geo-alt-fill me-2"></i> Delivery Details
+      <button class="accordion-button <%= isParkingLot ? '' : 'collapsed' %>" type="button" data-bs-toggle="collapse" data-bs-target="#sectionRoute">
+        <i class="bi bi-signpost-split me-2"></i> Pickup &amp; Delivery Details
       </button>
     </h2>
-    <div id="sectionDelivery" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
+    <div id="sectionRoute" class="accordion-collapse collapse <%= isParkingLot ? 'show' : '' %>" data-bs-parent="#bookingAccordion">
       <div class="accordion-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">To Location</label>
-            <% if (disabled) { %>
-              <% if (b.toLocationId) { %><a href="/entities/location/<%= b.toLocationId %>"><%= b.toLocationName %></a><% } else { %>—<% } %>
-            <% } else { %>
-              <input type="text" name="toLocation" class="form-control autocomplete-input"
-                     data-type="location" value="<%= b.toLocationName || '' %>" autocomplete="off">
-            <% } %>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Consignee</label>
-            <% if (disabled) { %>
-              <% if (b.consigneeId) { %><a href="/entities/consignee/<%= b.consigneeId %>"><%= b.consigneeName %></a><% } else { %>—<% } %>
-            <% } else { %>
-              <input type="text" name="consignee" class="form-control autocomplete-input"
-                     data-type="consignee" value="<%= b.consigneeName || '' %>" autocomplete="off">
-            <% } %>
-          </div>
-          <div class="col-12">
-            <label class="form-label">Recipient Details</label>
-            <textarea name="recipientDetails" class="form-control" rows="2" <%= disabled ? 'readonly' : '' %>><%= b.recipientDetails || '' %></textarea>
-          </div>
+        <p class="text-muted small mb-3">Each row is one pickup and delivery point pair.</p>
+        <div id="routeRows" class="dynamic-rows" data-row-type="route">
+          <% routes.forEach(function(r, i) { %>
+            <div class="dynamic-row route-row card card-body mb-3 border">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold text-muted small row-label">Point <%= i + 1 %></span>
+                <% if (!disabled) { %>
+                  <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" data-min-rows="1" title="Remove point">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                <% } %>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">From Location</label>
+                  <% if (disabled) { %>
+                    <% if (r.locationId) { %><a href="/entities/location/<%= r.locationId %>"><%= r.fromLocation %></a><% } else { %><%= r.fromLocation || '—' %><% } %>
+                  <% } else { %>
+                    <input type="text" name="pickups[<%= i %>][fromLocation]" class="form-control autocomplete-input"
+                           data-type="location" value="<%= r.fromLocation || '' %>" autocomplete="off">
+                  <% } %>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Consignor</label>
+                  <% if (disabled) { %>
+                    <% if (r.consignorId) { %><a href="/entities/consignor/<%= r.consignorId %>"><%= r.consignor %></a><% } else { %><%= r.consignor || '—' %><% } %>
+                  <% } else { %>
+                    <input type="text" name="pickups[<%= i %>][consignor]" class="form-control autocomplete-input"
+                           data-type="consignor" value="<%= r.consignor || '' %>" autocomplete="off">
+                  <% } %>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">To Location</label>
+                  <% if (disabled) { %>
+                    <% if (r.deliveryLocationId) { %><a href="/entities/location/<%= r.deliveryLocationId %>"><%= r.toLocation %></a><% } else { %><%= r.toLocation || '—' %><% } %>
+                  <% } else { %>
+                    <input type="text" name="deliveries[<%= i %>][toLocation]" class="form-control autocomplete-input"
+                           data-type="location" value="<%= r.toLocation || '' %>" autocomplete="off">
+                  <% } %>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Consignee</label>
+                  <% if (disabled) { %>
+                    <% if (r.consigneeId) { %><a href="/entities/consignee/<%= r.consigneeId %>"><%= r.consignee %></a><% } else { %><%= r.consignee || '—' %><% } %>
+                  <% } else { %>
+                    <input type="text" name="deliveries[<%= i %>][consignee]" class="form-control autocomplete-input"
+                           data-type="consignee" value="<%= r.consignee || '' %>" autocomplete="off">
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          <% }); %>
         </div>
+        <% if (!disabled) { %>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="addRouteRow">
+            <i class="bi bi-plus-lg me-1"></i> Add Pickup Point
+          </button>
+        <% } %>
       </div>
     </div>
   </div>
@@ -122,13 +170,21 @@
     <div id="sectionVehicle" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
       <div class="accordion-body">
         <div class="row g-3">
-          <div class="col-md-4">
+          <div class="col-md-8">
             <label class="form-label">Transporter</label>
             <% if (disabled) { %>
               <% if (b.transporterId) { %><a href="/entities/transporter/<%= b.transporterId %>"><%= b.transporterName %></a><% } else { %>—<% } %>
             <% } else { %>
-              <input type="text" name="transporter" class="form-control autocomplete-input"
-                     data-type="transporter" value="<%= b.transporterName || '' %>" autocomplete="off">
+              <input type="hidden" name="transporterId" id="transporterId" value="<%= b.transporterId || '' %>">
+              <div class="input-group">
+                <input type="text" id="transporterSearch" name="transporter" class="form-control autocomplete-input"
+                       data-type="transporter" data-value-field="transporterId" data-create-modal="transporterModal"
+                       value="<%= b.transporterName || b.transporter || '' %>" autocomplete="off"
+                       placeholder="Search transporter...">
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#transporterModal" title="Create new transporter">
+                  <i class="bi bi-plus-lg"></i> New
+                </button>
+              </div>
             <% } %>
           </div>
           <div class="col-md-4">
@@ -136,14 +192,21 @@
             <% if (disabled) { %>
               <% if (b.truckId) { %><a href="/entities/truck/<%= b.truckId %>"><%= b.truckNumber %></a><% } else { %>—<% } %>
             <% } else { %>
-              <input type="text" name="truckNumber" class="form-control autocomplete-input"
-                     data-type="truck" value="<%= b.truckNumber || '' %>" autocomplete="off">
+              <input type="hidden" name="truckId" id="truckId" value="<%= b.truckId || '' %>">
+              <div class="input-group">
+                <input type="text" id="truckSearch" name="truckNumber" class="form-control autocomplete-input"
+                       data-type="truck" data-value-field="truckId" data-create-modal="truckModal"
+                       value="<%= b.truckNumber || '' %>" autocomplete="off" placeholder="Search truck...">
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#truckModal" title="Create new truck">
+                  <i class="bi bi-plus-lg"></i> New
+                </button>
+              </div>
             <% } %>
           </div>
           <div class="col-md-4">
             <label class="form-label">Capacity</label>
-            <input type="number" step="0.01" name="capacity" class="form-control"
-                   value="<%= b.capacity || b.truckCapacity || '' %>" <%= disabled ? 'readonly' : '' %>>
+            <input type="text" id="truckCapacityDisplay" class="form-control" readonly
+                   value="<%= b.truckCapacity != null ? b.truckCapacity : '' %>" placeholder="From selected truck">
           </div>
         </div>
       </div>
@@ -217,74 +280,116 @@
     </h2>
     <div id="sectionGoods" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
       <div class="accordion-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Goods</label>
-            <% if (disabled) { %>
-              <%= b.goodName || '—' %>
-            <% } else { %>
-              <input type="text" name="goodName" class="form-control autocomplete-input"
-                     data-type="good" value="<%= b.goodName || '' %>" autocomplete="off">
-            <% } %>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Description</label>
-            <input type="text" name="descriptionOfGoods" class="form-control"
-                   value="<%= b.descriptionOfGoods || '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Quantity</label>
-            <input type="number" step="0.01" name="quantity" class="form-control"
-                   value="<%= b.quantity ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Unload Quantity</label>
-            <input type="number" step="0.01" name="unloadQuantity" class="form-control"
-                   value="<%= b.unloadQuantity ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Company Unload</label>
-            <input type="text" name="companyUnload" class="form-control"
-                   value="<%= b.companyUnload || '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Weight Details -->
-  <div class="accordion-item">
-    <h2 class="accordion-header">
-      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionWeight">
-        <i class="bi bi-speedometer me-2"></i> Weight Details
-      </button>
-    </h2>
-    <div id="sectionWeight" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
-      <div class="accordion-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Weight (Kgs)</label>
-            <input type="number" step="0.01" name="weightKgs" class="form-control"
-                   value="<%= b.weightKgs ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Unloaded Weight (Kgs)</label>
-            <input type="number" step="0.01" name="unloadedWeightKgs" class="form-control"
-                   value="<%= b.unloadedWeightKgs ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-6">
-            <input type="hidden" name="isUnloadComplete" value="false">
-            <div class="form-check mt-4">
-              <input type="checkbox" name="isUnloadComplete" value="true" class="form-check-input" id="isUnloadComplete"
-                     <%= b.isUnloadComplete ? 'checked' : '' %> <%= disabled ? 'disabled' : '' %>>
-              <label class="form-check-label" for="isUnloadComplete">Unload Complete</label>
+        <div id="goodsRows" class="dynamic-rows" data-row-type="goods">
+          <% goodsItems.forEach(function(g, i) { %>
+            <div class="dynamic-row goods-row card card-body mb-3 border">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold text-muted small">Goods <%= i + 1 %></span>
+                <% if (!disabled) { %>
+                  <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" data-min-rows="1" title="Remove goods item">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                <% } %>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Description</label>
+                  <% if (disabled) { %>
+                    <%= g.description || '—' %>
+                  <% } else { %>
+                    <input type="text" name="goodsItems[<%= i %>][description]" class="form-control"
+                           value="<%= g.description || '' %>">
+                  <% } %>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Packages</label>
+                  <input type="number" step="1" min="0" name="goodsItems[<%= i %>][packages]" class="form-control"
+                         value="<%= g.packages ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Package Name</label>
+                  <input type="text" name="goodsItems[<%= i %>][packageName]" class="form-control"
+                         list="packageNameOptions" value="<%= g.packageName || 'Bags' %>" <%= disabled ? 'readonly' : '' %>>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Weight (Kgs)</label>
+                  <input type="number" step="0.01" min="0" name="goodsItems[<%= i %>][weight]" class="form-control"
+                         value="<%= g.weightKgs ?? g.weight ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                </div>
+                <% if (!isParkingLot) { %>
+                  <div class="col-md-3">
+                    <label class="form-label">Unload Packages</label>
+                    <input type="number" step="1" min="0" name="goodsItems[<%= i %>][unloadPackages]" class="form-control"
+                           value="<%= g.unloadPackages ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Unload Weight (Kgs)</label>
+                    <input type="number" step="0.01" min="0" name="goodsItems[<%= i %>][unloadWeightKgs]" class="form-control"
+                           value="<%= g.unloadWeightKgs ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                  </div>
+                  <div class="col-12"><hr class="my-1"><small class="text-muted">Finance (per goods item)</small></div>
+                  <div class="col-md-3">
+                    <label class="form-label">Company Freight</label>
+                    <input type="number" step="0.01" name="goodsItems[<%= i %>][companyFreight]" class="form-control goods-finance-input"
+                           data-finance-field="companyFreight" value="<%= g.companyFreight ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Advance</label>
+                    <input type="number" step="0.01" name="goodsItems[<%= i %>][advance]" class="form-control goods-finance-input"
+                           data-finance-field="advance" value="<%= g.advance ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Loading Hamali</label>
+                    <input type="number" step="0.01" name="goodsItems[<%= i %>][loadingHamali]" class="form-control goods-finance-input"
+                           data-finance-field="loadingHamali" value="<%= g.loadingHamali ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Unloading Hamali</label>
+                    <input type="number" step="0.01" name="goodsItems[<%= i %>][unloadingHamali]" class="form-control goods-finance-input"
+                           data-finance-field="unloadingHamali" value="<%= g.unloadingHamali ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Balance</label>
+                    <input type="number" step="0.01" name="goodsItems[<%= i %>][balance]" class="form-control goods-finance-input"
+                           data-finance-field="balance" value="<%= g.balance ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+                  </div>
+                <% } %>
+              </div>
             </div>
+          <% }); %>
+        </div>
+        <% if (!disabled) { %>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="addGoodsRow">
+            <i class="bi bi-plus-lg me-1"></i> Add Goods Item
+          </button>
+        <% } %>
+        <div class="row g-3 mt-3">
+          <div class="col-12">
+            <label class="form-label">Goods Remark</label>
+            <textarea name="goodsRemark" class="form-control" rows="2" <%= disabled ? 'readonly' : '' %>><%= b.goodsRemark || '' %></textarea>
+            <div class="form-text">Applies to the entire booking, not individual goods items.</div>
           </div>
+          <% if (!isParkingLot) { %>
+            <div class="col-md-4">
+              <label class="form-label">Unload Quantity</label>
+              <input type="number" step="0.01" name="unloadQuantity" class="form-control"
+                     value="<%= b.unloadQuantity ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+            </div>
+            <div class="col-md-4">
+              <input type="hidden" name="isUnloadComplete" value="false">
+              <div class="form-check mt-4">
+                <input type="checkbox" name="isUnloadComplete" value="true" class="form-check-input" id="isUnloadComplete"
+                       <%= b.isUnloadComplete ? 'checked' : '' %> <%= disabled ? 'disabled' : '' %>>
+                <label class="form-check-label" for="isUnloadComplete">Unload Complete</label>
+              </div>
+            </div>
+          <% } %>
         </div>
       </div>
     </div>
   </div>
 
+  <% if (!isParkingLot) { %>
   <!-- Finance Information -->
   <div class="accordion-item">
     <h2 class="accordion-header">
@@ -294,35 +399,31 @@
     </h2>
     <div id="sectionFinance" class="accordion-collapse collapse" data-bs-parent="#bookingAccordion">
       <div class="accordion-body">
+        <div class="row g-3 mb-2">
+          <div class="col-12"><small class="text-muted fw-semibold">Totals (from goods items)</small></div>
+          <div class="col-md-4">
+            <label class="form-label">Total Company Freight</label>
+            <input type="text" class="form-control bg-light" id="totalCompanyFreightDisplay" readonly
+                   value="<%= b.totalCompanyFreight != null ? b.totalCompanyFreight : '' %>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Total Loading Hamali</label>
+            <input type="text" class="form-control bg-light" id="totalLoadingHamaliDisplay" readonly
+                   value="<%= b.totalLoadingHamali != null ? b.totalLoadingHamali : '' %>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Total Unloading Hamali</label>
+            <input type="text" class="form-control bg-light" id="totalUnloadingHamaliDisplay" readonly
+                   value="<%= b.totalUnloadingHamali != null ? b.totalUnloadingHamali : '' %>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Total Balance</label>
+            <input type="text" class="form-control bg-light" id="totalBalanceDisplay" readonly
+                   value="<%= b.totalBalance != null ? b.totalBalance : '' %>">
+          </div>
+        </div>
+        <hr>
         <div class="row g-3">
-          <div class="col-md-3">
-            <label class="form-label">Rate</label>
-            <input type="number" step="0.01" name="rate" class="form-control" value="<%= b.rate ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Company Rate</label>
-            <input type="number" step="0.01" name="companyRate" class="form-control" value="<%= b.companyRate ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Company Freight</label>
-            <input type="number" step="0.01" name="companyFreight" class="form-control" value="<%= b.companyFreight ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Advance</label>
-            <input type="number" step="0.01" name="advance" class="form-control" value="<%= b.advance ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Loading Hamali</label>
-            <input type="number" step="0.01" name="loadingHamali" class="form-control" value="<%= b.loadingHamali ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Unloading Hamali</label>
-            <input type="number" step="0.01" name="unloadingHamali" class="form-control" value="<%= b.unloadingHamali ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Balance Courier</label>
-            <input type="number" step="0.01" name="balanceCourier" class="form-control" value="<%= b.balanceCourier ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
           <div class="col-md-3">
             <label class="form-label">Commission</label>
             <input type="number" step="0.01" name="commission" class="form-control" value="<%= b.commission ?? '' %>" <%= disabled ? 'readonly' : '' %>>
@@ -344,16 +445,18 @@
             <input type="number" step="0.01" name="weightKattaCharges" class="form-control" value="<%= b.weightKattaCharges ?? '' %>" <%= disabled ? 'readonly' : '' %>>
           </div>
           <div class="col-md-3">
-            <label class="form-label">Balance</label>
-            <input type="number" step="0.01" name="balance" class="form-control" value="<%= b.balance ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Courier Charges</label>
-            <input type="number" step="0.01" name="courierCharges" class="form-control" value="<%= b.courierCharges ?? '' %>" <%= disabled ? 'readonly' : '' %>>
-          </div>
-          <div class="col-md-3">
             <label class="form-label">Lorry Freight Paid</label>
-            <input type="number" step="0.01" name="lorryFreightPaid" class="form-control" value="<%= b.lorryFreightPaid ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+            <input type="number" step="0.01" name="lorryFreightPaid" id="lorryFreightPaidInput" class="form-control" value="<%= b.lorryFreightPaid ?? '' %>" <%= disabled ? 'readonly' : '' %>>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Net Company Freight</label>
+            <input type="text" class="form-control bg-light" id="netCompanyFreightDisplay" readonly
+                   value="<%= b.netCompanyFreight != null ? b.netCompanyFreight : '' %>">
+            <div class="form-text">Total Company Freight − Lorry Freight Paid</div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Company Unload</label>
+            <input type="text" name="companyUnload" class="form-control" value="<%= b.companyUnload || '' %>" <%= disabled ? 'readonly' : '' %>>
           </div>
           <div class="col-md-4">
             <label class="form-label">Bank Name</label>
@@ -397,7 +500,7 @@
     </div>
   </div>
 
-  <!-- Timeline (read-only info) -->
+  <!-- Timeline -->
   <div class="accordion-item">
     <h2 class="accordion-header">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sectionTimeline">
@@ -435,6 +538,7 @@
       </div>
     </div>
   </div>
+  <% } %>
 
   <!-- Remarks -->
   <div class="accordion-item">
@@ -451,3 +555,93 @@
     </div>
   </div>
 </div>
+
+<!-- Row templates for dynamic add -->
+<template id="routeRowTemplate">
+  <div class="dynamic-row route-row card card-body mb-3 border">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="fw-semibold text-muted small row-label">Point</span>
+      <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" data-min-rows="1" title="Remove point">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">From Location</label>
+        <input type="text" class="form-control autocomplete-input" data-type="location" data-array="pickups" data-name="fromLocation" autocomplete="off">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Consignor</label>
+        <input type="text" class="form-control autocomplete-input" data-type="consignor" data-array="pickups" data-name="consignor" autocomplete="off">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">To Location</label>
+        <input type="text" class="form-control autocomplete-input" data-type="location" data-array="deliveries" data-name="toLocation" autocomplete="off">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Consignee</label>
+        <input type="text" class="form-control autocomplete-input" data-type="consignee" data-array="deliveries" data-name="consignee" autocomplete="off">
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="goodsRowTemplate">
+  <div class="dynamic-row goods-row card card-body mb-3 border">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="fw-semibold text-muted small row-label">Goods</span>
+      <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" data-min-rows="1" title="Remove goods item">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Description</label>
+        <input type="text" class="form-control" data-name="description">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Packages</label>
+        <input type="number" step="1" min="0" class="form-control" data-name="packages">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Package Name</label>
+        <input type="text" class="form-control" data-name="packageName" list="packageNameOptions" value="Bags">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Weight (Kgs)</label>
+        <input type="number" step="0.01" min="0" class="form-control" data-name="weight">
+      </div>
+      <% if (!isParkingLot) { %>
+      <div class="col-12 goods-finance-section"><hr class="my-1"><small class="text-muted">Finance (per goods item)</small></div>
+      <div class="col-md-3">
+        <label class="form-label">Company Freight</label>
+        <input type="number" step="0.01" class="form-control goods-finance-input" data-name="companyFreight" data-finance-field="companyFreight">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Advance</label>
+        <input type="number" step="0.01" class="form-control goods-finance-input" data-name="advance" data-finance-field="advance">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Loading Hamali</label>
+        <input type="number" step="0.01" class="form-control goods-finance-input" data-name="loadingHamali" data-finance-field="loadingHamali">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Unloading Hamali</label>
+        <input type="number" step="0.01" class="form-control goods-finance-input" data-name="unloadingHamali" data-finance-field="unloadingHamali">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Balance</label>
+        <input type="number" step="0.01" class="form-control goods-finance-input" data-name="balance" data-finance-field="balance">
+      </div>
+      <% } %>
+    </div>
+  </div>
+</template>
+
+<datalist id="packageNameOptions">
+  <option value="Bags"></option>
+  <option value="Boxes"></option>
+  <option value="Drums"></option>
+  <option value="Cartons"></option>
+  <option value="Bundles"></option>
+</datalist>

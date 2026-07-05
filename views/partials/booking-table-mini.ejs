@@ -7,7 +7,7 @@
           <th>Stage</th>
           <th>From</th>
           <th>To</th>
-          <th>Rate</th>
+          <th>Total Company Freight</th>
           <th>Updated</th>
         </tr>
       </thead>
@@ -18,7 +18,7 @@
             <td><%- include('./stage-badge', { stage: b.stage }) %></td>
             <td><%= b.fromLocationName || '—' %></td>
             <td><%= b.toLocationName || '—' %></td>
-            <td><%= b.rate != null ? '₹' + Number(b.rate).toLocaleString('en-IN') : '—' %></td>
+            <td><%= b.totalCompanyFreight != null ? '₹' + Number(b.totalCompanyFreight).toLocaleString('en-IN') : '—' %></td>
             <td><%= formatDateTime(b.updatedAt) %></td>
           </tr>
         <% }); %>

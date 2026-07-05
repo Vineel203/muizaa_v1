@@ -1,42 +1,112 @@
 'use strict';
 
+const { sanitizeString, toNumber } = require('../utils/helpers');
+
+function ensureArray(value) {
+  if (value === null || value === undefined || value === '') return [];
+  return Array.isArray(value) ? value : [value];
+}
+
 class MasterDataService {
   constructor(repositories) {
     this.repositories = repositories;
   }
 
+  async resolvePickupPoints(input, client) {
+    const rows = ensureArray(input.pickups).filter(
+      (row) => sanitizeString(row?.fromLocation) || sanitizeString(row?.consignor)
+    );
+
+    const resolved = [];
+    for (const row of rows) {
+      let locationId = null;
+      let consignorId = null;
+
+      if (sanitizeString(row.fromLocation)) {
+        locationId = (await this.repositories.locationRepository.findOrCreateByName(
+          row.fromLocation,
+          client
+        )).id;
+      }
+
+      if (sanitizeString(row.consignor)) {
+        consignorId = (await this.repositories.consignorRepository.findOrCreateByName(
+          row.consignor,
+          client
+        )).id;
+      }
+
+      resolved.push({ locationId, consignorId });
+    }
+    return resolved;
+  }
+
+  async resolveDeliveryPoints(input, client) {
+    const rows = ensureArray(input.deliveries).filter(
+      (row) => sanitizeString(row?.toLocation) || sanitizeString(row?.consignee)
+    );
+
+    const resolved = [];
+    for (const row of rows) {
+      let locationId = null;
+      let consigneeId = null;
+
+      if (sanitizeString(row.toLocation)) {
+        locationId = (await this.repositories.locationRepository.findOrCreateByName(
+          row.toLocation,
+          client
+        )).id;
+      }
+
+      if (sanitizeString(row.consignee)) {
+        consigneeId = (await this.repositories.consigneeRepository.findOrCreateByName(
+          row.consignee,
+          client
+        )).id;
+      }
+
+      resolved.push({ locationId, consigneeId });
+    }
+    return resolved;
+  }
+
+  async resolveGoodsItems(input) {
+    const numericGoodsFields = [
+      'packages', 'weight', 'unloadPackages', 'unloadWeightKgs',
+      'companyFreight', 'advance',
+      'loadingHamali', 'unloadingHamali', 'balance',
+    ];
+
+    return ensureArray(input.goodsItems)
+      .filter((row) => {
+        const hasContent = sanitizeString(row?.description)
+          || sanitizeString(row?.packageName)
+          || numericGoodsFields.some((field) => row?.[field] != null && row[field] !== '');
+        return hasContent;
+      })
+      .map((row) => ({
+        description: sanitizeString(row.description),
+        packages: toNumber(row.packages) != null ? Math.round(toNumber(row.packages)) : null,
+        packageName: sanitizeString(row.packageName),
+        weightKgs: toNumber(row.weight),
+        unloadPackages: toNumber(row.unloadPackages) != null
+          ? Math.round(toNumber(row.unloadPackages))
+          : null,
+        unloadWeightKgs: toNumber(row.unloadWeightKgs),
+        companyFreight: toNumber(row.companyFreight),
+        advance: toNumber(row.advance),
+        loadingHamali: toNumber(row.loadingHamali),
+        unloadingHamali: toNumber(row.unloadingHamali),
+        balance: toNumber(row.balance),
+      }));
+  }
+
   async resolveMasterData(input, client) {
     const resolved = {};
 
-    if (input.fromLocation) {
-      resolved.from_location_id = (await this.repositories.locationRepository.findOrCreateByName(
-        input.fromLocation,
-        client
-      )).id;
-    }
-
-    if (input.toLocation) {
-      resolved.to_location_id = (await this.repositories.locationRepository.findOrCreateByName(
-        input.toLocation,
-        client
-      )).id;
-    }
-
-    if (input.consignor) {
-      resolved.consignor_id = (await this.repositories.consignorRepository.findOrCreateByName(
-        input.consignor,
-        client
-      )).id;
-    }
-
-    if (input.consignee) {
-      resolved.consignee_id = (await this.repositories.consigneeRepository.findOrCreateByName(
-        input.consignee,
-        client
-      )).id;
-    }
-
-    if (input.transporter) {
+    if (input.transporterId) {
+      resolved.transporter_id = parseInt(input.transporterId, 10) || null;
+    } else if (input.transporter) {
       resolved.transporter_id = (await this.repositories.transporterRepository.findOrCreateByName(
         input.transporter,
         client
@@ -59,10 +129,12 @@ class MasterDataService {
       )).id;
     }
 
-    if (input.truckNumber) {
+    if (input.truckId) {
+      resolved.truck_id = parseInt(input.truckId, 10) || null;
+    } else if (input.truckNumber) {
       resolved.truck_id = (await this.repositories.truckRepository.findOrCreateByNumber(
         input.truckNumber,
-        input.truckCapacity || input.capacity,
+        input.truckCapacity,
         client
       )).id;
     }
@@ -76,14 +148,51 @@ class MasterDataService {
       )).id;
     }
 
-    if (input.goodName) {
-      resolved.good_id = (await this.repositories.goodRepository.findOrCreateByName(
-        input.goodName,
+    return resolved;
+  }
+
+  async createTruck(input, client = null) {
+    return this.repositories.truckRepository.createTruck(
+      {
+        number: sanitizeString(input.number),
+        capacity: toNumber(input.capacity),
+        driverName: sanitizeString(input.driverName),
+        driverNumber: sanitizeString(input.driverNumber),
+        ownerName: sanitizeString(input.ownerName),
+        ownerNumber: sanitizeString(input.ownerNumber),
+      },
+      client
+    );
+  }
+
+  async createTransporter(input, client = null) {
+    const name = sanitizeString(input.name);
+    if (!name) {
+      const { ValidationError } = require('../utils/errors');
+      throw new ValidationError('Transporter name is required');
+    }
+
+    let bankingDetailId = null;
+    if (sanitizeString(input.bankName)) {
+      bankingDetailId = (await this.repositories.bankingDetailRepository.findOrCreateByDetails(
+        input.bankName,
+        input.accountNumber,
+        input.ifsc,
         client
       )).id;
     }
 
-    return resolved;
+    return this.repositories.transporterRepository.createWithDetails(
+      {
+        name,
+        phone_number: sanitizeString(input.phoneNumber),
+        address: sanitizeString(input.address),
+        operating_routes: sanitizeString(input.operatingRoutes),
+        banking_detail_id: bankingDetailId,
+        notes: sanitizeString(input.notes),
+      },
+      client
+    );
   }
 
   async search(type, term) {
@@ -96,7 +205,6 @@ class MasterDataService {
       truck: () => this.repositories.truckRepository.search(term),
       owner: () => this.repositories.truckOwnerRepository.search(term),
       banking: () => this.repositories.bankingDetailRepository.search(term),
-      good: () => this.repositories.goodRepository.search(term),
     };
 
     const handler = searchMap[type];

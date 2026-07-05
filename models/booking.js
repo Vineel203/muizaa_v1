@@ -1,33 +1,40 @@
-'use strict';
-
-/**
- * Booking domain model - documents the booking entity shape.
- * Database mapping is handled by repositories.
- */
-const { STAGES } = require('../config/permissions');
-
-const BOOKING_FIELDS = [
-  'id', 'bookingId', 'stage',
-  'fromLocationId', 'toLocationId',
-  'consignorId', 'consigneeId',
-  'transporterId', 'driverId', 'truckId', 'truckOwnerId',
-  'bankingDetailId', 'goodId',
-  'descriptionOfGoods', 'quantity', 'unloadQuantity',
-  'weightKgs', 'unloadedWeightKgs',
-  'onRoadTime', 'unloadTime',
-  'managementRemark', 'courier', 'serialNumber', 'invoiceNumber',
-  'rate', 'capacity', 'companyUnload',
-  'advance', 'loadingHamali', 'unloadingHamali',
-  'balanceCourier', 'commission', 'localDriverCharges',
-  'roughBalance', 'gumastaCharges', 'weightKattaCharges',
-  'balance', 'courierCharges', 'lorryFreightPaid',
-  'companyRate', 'companyFreight',
-  'financeRemark', 'financeEditedFlag', 'recipientDetails',
-  'isFinanceComplete', 'isUnloadComplete',
-  'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
-];
-
-module.exports = {
-  STAGES,
-  BOOKING_FIELDS,
-};
+'use strict';
+
+/**
+ * Booking domain model - documents the booking entity shape.
+ */
+const { STAGES } = require('../config/permissions');
+
+const BOOKING_FIELDS = [
+  'id', 'bookingId', 'gdmNumber', 'stage',
+  'invoiceId', 'invoiceNumber',
+  'transporterId', 'driverId', 'truckId', 'truckOwnerId',
+  'bankingDetailId',
+  'goodsRemark', 'unloadQuantity', 'unloadedWeightKgs',
+  'pickups', 'deliveries', 'goodsItems',
+  'totalCompanyFreight', 'netCompanyFreight',
+  'totalAdvance', 'totalLoadingHamali', 'totalUnloadingHamali', 'totalBalance',
+  'onRoadTime', 'unloadTime',
+  'managementRemark', 'serialNumber',
+  'companyUnload',
+  'commission', 'localDriverCharges',
+  'roughBalance', 'gumastaCharges', 'weightKattaCharges',
+  'lorryFreightPaid',
+  'financeRemark', 'financeEditedFlag',
+  'isFinanceComplete', 'isUnloadComplete',
+  'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
+];
+
+const GOODS_ITEM_FIELDS = [
+  'id', 'bookingId', 'sortOrder',
+  'description', 'packages', 'packageName', 'weightKgs',
+  'unloadPackages', 'unloadWeightKgs',
+  'companyFreight', 'advance',
+  'loadingHamali', 'unloadingHamali', 'balance',
+];
+
+module.exports = {
+  STAGES,
+  BOOKING_FIELDS,
+  GOODS_ITEM_FIELDS,
+};

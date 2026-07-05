@@ -16,90 +16,75 @@ const {
   toNumber,
   toBoolean,
   isReadOnlyStage,
+  ensureArray,
+  parseBookingId,
 } = require('../utils/helpers');
 
 const FIELD_MAP = {
-  descriptionOfGoods: 'description_of_goods',
-  quantity: 'quantity',
+  goodsRemark: 'goods_remark',
   unloadQuantity: 'unload_quantity',
-  weightKgs: 'weight_kgs',
   unloadedWeightKgs: 'unloaded_weight_kgs',
   managementRemark: 'management_remark',
-  courier: 'courier',
   serialNumber: 'serial_number',
-  invoiceNumber: 'invoice_number',
-  rate: 'rate',
-  capacity: 'capacity',
   companyUnload: 'company_unload',
-  advance: 'advance',
-  loadingHamali: 'loading_hamali',
-  unloadingHamali: 'unloading_hamali',
-  balanceCourier: 'balance_courier',
   commission: 'commission',
   localDriverCharges: 'local_driver_charges',
   roughBalance: 'rough_balance',
   gumastaCharges: 'gumasta_charges',
   weightKattaCharges: 'weight_katta_charges',
-  balance: 'balance',
-  courierCharges: 'courier_charges',
   lorryFreightPaid: 'lorry_freight_paid',
-  companyRate: 'company_rate',
-  companyFreight: 'company_freight',
   financeRemark: 'finance_remark',
   financeEditedFlag: 'finance_edited_flag',
-  recipientDetails: 'recipient_details',
   isFinanceComplete: 'is_finance_complete',
   isUnloadComplete: 'is_unload_complete',
 };
 
 const FIELD_LABELS = {
-  description_of_goods: 'Description of Goods',
-  quantity: 'Quantity',
+  booking_id: 'Booking ID',
+  gdm_number: 'GDM Number',
+  goods_remark: 'Goods Remark',
   unload_quantity: 'Unload Quantity',
-  weight_kgs: 'Weight (Kgs)',
   unloaded_weight_kgs: 'Unloaded Weight (Kgs)',
   management_remark: 'Management Remark',
-  courier: 'Courier',
   serial_number: 'Serial Number',
-  invoice_number: 'Invoice Number',
-  rate: 'Rate',
-  capacity: 'Capacity',
   company_unload: 'Company Unload',
-  advance: 'Advance',
-  loading_hamali: 'Loading Hamali',
-  unloading_hamali: 'Unloading Hamali',
-  balance_courier: 'Balance Courier',
   commission: 'Commission',
   local_driver_charges: 'Local Driver Charges',
   rough_balance: 'Rough Balance',
   gumasta_charges: 'Gumasta Charges',
   weight_katta_charges: 'Weight Katta Charges',
-  balance: 'Balance',
-  courier_charges: 'Courier Charges',
   lorry_freight_paid: 'Lorry Freight Paid',
-  company_rate: 'Company Rate',
-  company_freight: 'Company Freight',
   finance_remark: 'Finance Remark',
   finance_edited_flag: 'Finance Edited',
-  recipient_details: 'Recipient Details',
   is_finance_complete: 'Finance Complete',
   is_unload_complete: 'Unload Complete',
-  from_location_id: 'From Location',
-  to_location_id: 'To Location',
-  consignor_id: 'Consignor',
-  consignee_id: 'Consignee',
   transporter_id: 'Transporter',
   driver_id: 'Driver',
   truck_id: 'Truck',
   truck_owner_id: 'Truck Owner',
   banking_detail_id: 'Banking Detail',
-  good_id: 'Good',
+  pickups: 'Pickup Points',
+  deliveries: 'Delivery Points',
+  goods_items: 'Goods Items',
 };
 
 class BookingService {
-  constructor({ bookingRepository, bookingSequenceRepository, masterDataService, historyService }) {
+  constructor({
+    bookingRepository,
+    bookingPickupRepository,
+    bookingDeliveryRepository,
+    bookingGoodsItemRepository,
+    documentSequenceRepository,
+    invoiceRepository,
+    masterDataService,
+    historyService,
+  }) {
     this.bookingRepository = bookingRepository;
-    this.bookingSequenceRepository = bookingSequenceRepository;
+    this.bookingPickupRepository = bookingPickupRepository;
+    this.bookingDeliveryRepository = bookingDeliveryRepository;
+    this.bookingGoodsItemRepository = bookingGoodsItemRepository;
+    this.documentSequenceRepository = documentSequenceRepository;
+    this.invoiceRepository = invoiceRepository;
     this.masterDataService = masterDataService;
     this.historyService = historyService;
   }
@@ -110,6 +95,22 @@ class BookingService {
     return booking;
   }
 
+  async saveChildRecords(bookingId, input, client) {
+    const [pickups, deliveries, goodsItems] = await Promise.all([
+      this.masterDataService.resolvePickupPoints(input, client),
+      this.masterDataService.resolveDeliveryPoints(input, client),
+      this.masterDataService.resolveGoodsItems(input),
+    ]);
+
+    await Promise.all([
+      this.bookingPickupRepository.replaceForBooking(bookingId, pickups, client),
+      this.bookingDeliveryRepository.replaceForBooking(bookingId, deliveries, client),
+      this.bookingGoodsItemRepository.replaceForBooking(bookingId, goodsItems, client),
+    ]);
+
+    return { pickups, deliveries, goodsItems };
+  }
+
   async createParkingLotEntry(input, user) {
     return withTransaction(async (client) => {
       const masterIds = await this.masterDataService.resolveMasterData(input, client);
@@ -118,16 +119,15 @@ class BookingService {
         {
           stage: STAGES.PARKING_LOT,
           ...masterIds,
-          description_of_goods: sanitizeString(input.descriptionOfGoods),
-          quantity: toNumber(input.quantity),
-          weight_kgs: toNumber(input.weightKgs),
-          capacity: toNumber(input.capacity),
+          goods_remark: sanitizeString(input.goodsRemark),
           management_remark: sanitizeString(input.managementRemark),
           created_by: user.email,
           updated_by: user.email,
         },
         client
       );
+
+      await this.saveChildRecords(booking.id, input, client);
 
       await this.historyService.recordFieldChanges(
         {
@@ -139,7 +139,7 @@ class BookingService {
         client
       );
 
-      return booking;
+      return this.bookingRepository.findById(booking.id, client);
     });
   }
 
@@ -154,13 +154,28 @@ class BookingService {
       const masterIds = await this.masterDataService.resolveMasterData(input, client);
       const updateData = { ...masterIds, updated_by: user.email, updated_at: new Date() };
 
+      if (Object.prototype.hasOwnProperty.call(input, 'bookingId')) {
+        const bookingId = sanitizeString(input.bookingId);
+        if (bookingId) {
+          if (!parseBookingId(bookingId)) {
+            throw new ValidationError('Invalid booking ID format. Expected MYYYYMMSSS');
+          }
+          const taken = await this.bookingRepository.isBookingIdTaken(bookingId, id, client);
+          if (taken) throw new ValidationError('Booking ID already exists');
+          updateData.booking_id = bookingId;
+        } else {
+          updateData.booking_id = null;
+        }
+      }
+
       Object.entries(FIELD_MAP).forEach(([inputKey, dbKey]) => {
         if (Object.prototype.hasOwnProperty.call(input, inputKey)) {
           const value = input[inputKey];
-          if (['quantity', 'unloadQuantity', 'weightKgs', 'unloadedWeightKgs', 'rate', 'capacity',
-            'advance', 'loadingHamali', 'unloadingHamali', 'balanceCourier', 'commission',
+          if ([
+            'unloadQuantity', 'unloadedWeightKgs', 'commission',
             'localDriverCharges', 'roughBalance', 'gumastaCharges', 'weightKattaCharges',
-            'balance', 'courierCharges', 'lorryFreightPaid', 'companyRate', 'companyFreight'].includes(inputKey)) {
+            'lorryFreightPaid',
+          ].includes(inputKey)) {
             updateData[dbKey] = toNumber(value);
           } else if (['isFinanceComplete', 'isUnloadComplete', 'financeEditedFlag'].includes(inputKey)) {
             updateData[dbKey] = toBoolean(value);
@@ -171,7 +186,33 @@ class BookingService {
       });
 
       const changes = this.buildChangeSet(existing, updateData);
+
+      if (input.pickups || input.deliveries || input.goodsItems) {
+        changes.push(...this.buildChildChangeSet(existing, input));
+        await this.saveChildRecords(id, input, client);
+      }
+
       const updated = await this.bookingRepository.update(id, updateData, client);
+
+      if (
+        Object.prototype.hasOwnProperty.call(input, 'invoiceNumber')
+        && existing.invoiceId
+      ) {
+        const invoiceNumber = sanitizeString(input.invoiceNumber);
+        if (invoiceNumber) {
+          const taken = await this.invoiceRepository.isInvoiceNumberTaken(
+            invoiceNumber,
+            existing.invoiceId,
+            client
+          );
+          if (taken) throw new ValidationError('Invoice number already exists');
+          await this.invoiceRepository.update(
+            existing.invoiceId,
+            { invoice_number: invoiceNumber, updated_by: user.email, updated_at: new Date() },
+            client
+          );
+        }
+      }
 
       if (changes.length) {
         await this.historyService.recordFieldChanges(
@@ -189,6 +230,51 @@ class BookingService {
 
       return updated;
     });
+  }
+
+  async ensureGdmNumber(id, user) {
+    const existing = await this.getById(id);
+    if (existing.gdmNumber) return existing;
+
+    return withTransaction(async (client) => {
+      const gdmNumber = await this.documentSequenceRepository.getNextNumber('GDM', client);
+
+      const updated = await this.bookingRepository.update(
+        id,
+        {
+          gdm_number: gdmNumber,
+          updated_by: user.email,
+          updated_at: new Date(),
+        },
+        client
+      );
+
+      await this.historyService.recordFieldChanges(
+        {
+          bookingId: id,
+          changedBy: user.email,
+          changes: [{
+            field: 'gdm_number',
+            label: FIELD_LABELS.gdm_number,
+            oldValue: '',
+            newValue: gdmNumber,
+          }],
+          remark: 'GDM number assigned',
+        },
+        client
+      );
+
+      return updated;
+    });
+  }
+
+  /** @deprecated Use ensureGdmNumber via GDM document flow */
+  async generateGdm(id, user) {
+    const existing = await this.getById(id);
+    if (existing.gdmNumber) {
+      throw new ValidationError('GDM has already been generated for this booking');
+    }
+    return this.ensureGdmNumber(id, user);
   }
 
   async transitionStage(id, newStage, user, remark) {
@@ -222,7 +308,7 @@ class BookingService {
       };
 
       if (newStage === STAGES.ON_ROAD) {
-        updateData.booking_id = await this.bookingSequenceRepository.getNextBookingId(client);
+        updateData.booking_id = await this.documentSequenceRepository.getNextNumber('BOOKING', client);
         updateData.on_road_time = new Date();
       }
 
@@ -249,6 +335,91 @@ class BookingService {
 
   async getDataTable(filters) {
     return this.bookingRepository.searchDataTable(filters);
+  }
+
+  formatPickupSummary(pickups = []) {
+    return pickups
+      .map((p) => [p.locationName, p.consignorName].filter(Boolean).join(' / '))
+      .filter(Boolean)
+      .join('; ');
+  }
+
+  formatDeliverySummary(deliveries = []) {
+    return deliveries
+      .map((d) => [d.locationName, d.consigneeName].filter(Boolean).join(' / '))
+      .filter(Boolean)
+      .join('; ');
+  }
+
+  formatGoodsSummary(goodsItems = []) {
+    return goodsItems
+      .map((g) => {
+        const parts = [g.description];
+        if (g.packages != null) {
+          parts.push(g.packageName ? `${g.packages} ${g.packageName}` : `${g.packages} pkg`);
+        }
+        if (g.weightKgs != null) parts.push(`${g.weightKgs} kg`);
+        if (g.advance != null) parts.push(`adv ₹${g.advance}`);
+        return parts.filter(Boolean).join(' — ');
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
+
+  buildChildChangeSet(existing, input) {
+    const changes = [];
+
+    if (input.pickups) {
+      const oldSummary = this.formatPickupSummary(existing.pickups);
+      const newSummary = ensureArray(input.pickups)
+        .filter((row) => row?.fromLocation || row?.consignor)
+        .map((row) => [row.fromLocation, row.consignor].filter(Boolean).join(' / '))
+        .filter(Boolean)
+        .join('; ');
+      if (oldSummary !== newSummary) {
+        changes.push({ field: 'pickups', oldValue: oldSummary, newValue: newSummary });
+      }
+    }
+
+    if (input.deliveries) {
+      const oldSummary = this.formatDeliverySummary(existing.deliveries);
+      const newSummary = ensureArray(input.deliveries)
+        .filter((row) => row?.toLocation || row?.consignee)
+        .map((row) => [row.toLocation, row.consignee].filter(Boolean).join(' / '))
+        .filter(Boolean)
+        .join('; ');
+      if (oldSummary !== newSummary) {
+        changes.push({ field: 'deliveries', oldValue: oldSummary, newValue: newSummary });
+      }
+    }
+
+    if (input.goodsItems) {
+      const oldSummary = this.formatGoodsSummary(existing.goodsItems);
+      const newSummary = ensureArray(input.goodsItems)
+        .filter((row) => {
+          const numericFields = [
+            'description', 'packages', 'packageName', 'weight', 'companyFreight',
+            'advance', 'loadingHamali', 'unloadingHamali', 'balance',
+          ];
+          return numericFields.some((field) => row?.[field] != null && row[field] !== '');
+        })
+        .map((row) => {
+          const parts = [row.description];
+          if (row.packages) {
+            parts.push(row.packageName ? `${row.packages} ${row.packageName}` : `${row.packages} pkg`);
+          }
+          if (row.weight) parts.push(`${row.weight} kg`);
+          if (row.advance) parts.push(`adv ₹${row.advance}`);
+          return parts.filter(Boolean).join(' — ');
+        })
+        .filter(Boolean)
+        .join('; ');
+      if (oldSummary !== newSummary) {
+        changes.push({ field: 'goods_items', oldValue: oldSummary, newValue: newSummary });
+      }
+    }
+
+    return changes;
   }
 
   buildChangeSet(existing, updateData) {

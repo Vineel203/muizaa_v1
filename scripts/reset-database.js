@@ -53,9 +53,9 @@ async function resetDatabase({ seed = false } = {}) {
   await closePool();
 
   if (seed) {
-    console.log('Seeding admin user...');
+    console.log('Seeding admin user and development data...');
     const { spawnSync } = require('child_process');
-    const result = spawnSync(process.execPath, [path.join(__dirname, 'seed.js')], {
+    const result = spawnSync(process.execPath, [path.join(__dirname, 'seed.js'), '--dev'], {
       stdio: 'inherit',
       env: process.env,
     });
@@ -64,7 +64,7 @@ async function resetDatabase({ seed = false } = {}) {
     }
   }
 
-  console.log(seed ? 'Fresh database ready (schema + admin user).' : 'Fresh database ready.');
+  console.log(seed ? 'Fresh database ready (schema + admin + sample data).' : 'Fresh database ready.');
 }
 
 const seedAfter = process.argv.includes('--seed');

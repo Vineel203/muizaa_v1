@@ -29,3 +29,10 @@ env:
 
   - variable: DB_SSL
     value: "false"
+
+  # GDM PDF storage — create secrets before deploy (see README / deployment notes)
+  - variable: GOOGLE_DRIVE_ROOT_FOLDER_ID
+    secret: GOOGLE_DRIVE_ROOT_FOLDER_ID
+
+  - variable: GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON
+    secret: GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON

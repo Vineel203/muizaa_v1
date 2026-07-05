@@ -1,0 +1,48 @@
+<div class="page-header mb-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-2">
+      <li class="breadcrumb-item"><a href="/invoices">Invoices</a></li>
+      <li class="breadcrumb-item active">Create</li>
+    </ol>
+  </nav>
+  <h1 class="page-title"><%= title %></h1>
+</div>
+
+<% if (typeof error !== 'undefined' && error) { %>
+  <div class="alert alert-danger"><%= error %></div>
+<% } %>
+
+<form method="POST" action="/invoices" id="invoiceForm">
+  <div class="card shadow-sm mb-4">
+    <div class="card-header"><i class="bi bi-person-lines-fill me-2"></i>Recipient Details</div>
+    <div class="card-body">
+      <label class="form-label">Recipient Details <span class="text-danger">*</span></label>
+      <textarea name="recipientDetails" class="form-control" rows="4" required
+                placeholder="Enter full recipient name, address, and contact details"><%= (invoice && invoice.recipientDetails) || '' %></textarea>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-journal-check me-2"></i>Select Bookings</span>
+      <span class="badge bg-primary" id="selectedCount">0 selected</span>
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <input type="text" id="bookingSearch" class="form-control" placeholder="Search by Booking ID, transporter, truck, location...">
+      </div>
+      <div id="bookingSearchResults" class="list-group mb-3"></div>
+      <div id="selectedBookings" class="d-flex flex-column gap-2"></div>
+      <p class="text-muted small mb-0 mt-3">Only bookings not already assigned to an invoice are shown.</p>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary btn-lg" id="submitInvoiceBtn" disabled>
+      <i class="bi bi-check-lg me-1"></i> Create Invoice
+    </button>
+    <a href="/invoices" class="btn btn-outline-secondary btn-lg">Cancel</a>
+  </div>
+</form>
+
+<script src="/js/invoice-form.js"></script>

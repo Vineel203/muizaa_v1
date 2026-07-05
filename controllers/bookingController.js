@@ -8,9 +8,10 @@ const logger = require('../utils/logger');
 
 class BookingController {
   constructor() {
-    const { bookingService, historyService } = getContainer().services;
+    const { bookingService, historyService, gdmDocumentService } = getContainer().services;
     this.bookingService = bookingService;
     this.historyService = historyService;
+    this.gdmDocumentService = gdmDocumentService;
   }
 
   async list(req, res, next) {
@@ -75,11 +76,13 @@ class BookingController {
     try {
       const booking = await this.bookingService.getById(req.params.id);
       const timeline = await this.historyService.getTimeline(booking.id);
+      const gdmDocuments = await this.gdmDocumentService.listByBookingId(booking.id);
 
       res.render('bookings/detail', {
         title: booking.bookingId || `Parking Lot #${booking.id}`,
         booking,
         timeline,
+        gdmDocuments,
         readOnly: isReadOnlyStage(booking.stage),
         nextStages: this.getNextStages(booking),
       });
@@ -90,13 +93,7 @@ class BookingController {
 
   async editForm(req, res, next) {
     try {
-      const booking = await this.bookingService.getById(req.params.id);
-      res.render('bookings/form', {
-        title: `Edit ${booking.bookingId || 'Parking Lot Entry'}`,
-        booking,
-        isEdit: true,
-        readOnly: isReadOnlyStage(booking.stage),
-      });
+      return res.redirect(`/bookings/${req.params.id}`);
     } catch (error) {
       next(error);
     }
@@ -194,13 +191,35 @@ class BookingController {
           transporter: b.transporterName || '—',
           driver: b.driverName || '—',
           truck: b.truckNumber || '—',
-          rate: b.rate ?? '—',
+          totalCompanyFreight: b.totalCompanyFreight != null ? b.totalCompanyFreight : '—',
           createdAt: b.createdAt,
           updatedAt: b.updatedAt,
         })),
       });
     } catch (error) {
       next(error);
+    }
+  }
+
+  async generateGdm(req, res, next) {
+    try {
+      const booking = await this.bookingService.generateGdm(req.params.id, req.user);
+
+      if (req.xhr || req.headers.accept?.includes('application/json')) {
+        return res.json({ success: true, booking, gdmNumber: booking.gdmNumber });
+      }
+
+      req.session.flash = { type: 'success', message: `GDM ${booking.gdmNumber} generated` };
+      return res.redirect(`/bookings/${booking.id}`);
+    } catch (error) {
+      if (req.xhr || req.headers.accept?.includes('application/json')) {
+        return res.status(error.statusCode || 400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      req.session.flash = { type: 'danger', message: error.message };
+      return res.redirect(`/bookings/${req.params.id}`);
     }
   }
 

@@ -38,7 +38,20 @@
       <dd class="col-sm-9"><%= entity[config.nameField] %></dd>
       <% config.extraFields.forEach(function(field) { %>
         <% if (entity[field]) { %>
-          <dt class="col-sm-3"><%= field.charAt(0).toUpperCase() + field.slice(1) %></dt>
+          <%
+            const fieldLabels = {
+              phoneNumber: 'Phone Number',
+              operatingRoutes: 'Operating Routes',
+              bankName: 'Bank Name',
+              accountNumber: 'Account Number',
+              defaultDriverName: 'Default Driver',
+              defaultDriverNumber: 'Default Driver Number',
+              defaultOwnerName: 'Default Owner',
+              defaultOwnerNumber: 'Default Owner Number',
+            };
+            const fieldLabel = fieldLabels[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+          %>
+          <dt class="col-sm-3"><%= fieldLabel %></dt>
           <dd class="col-sm-9"><%= entity[field] %></dd>
         <% } %>
       <% }); %>

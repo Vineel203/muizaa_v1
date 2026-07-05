@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>Goods Dispatch Memo</title>
+<style>
+  /* ============================================================
+     Goods Dispatch Memo — clean A4 invoice-style layout
+     Adapted from a modern invoice template. Arial, light gray
+     labels, bold dark values, bordered line-item table.
+     ============================================================ */
+  @page { size: A4 portrait; margin: 0; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: #fff;
+    font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+    color: #1f2937;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    text-rendering: optimizeLegibility;
+  }
+
+  .invoice {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 16mm 15mm;
+    margin: 0 auto;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top: brand + memo info ─────────────────────────────── */
+  .invoice-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .invoice-logo-brand { max-width: 60%; }
+  .invoice-logo-brand img {
+    max-height: 22mm;
+    max-width: 70mm;
+    object-fit: contain;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .invoice-logo-brand h2 {
+    text-transform: uppercase;
+    font-size: 18pt;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    color: #0f172a;
+    line-height: 1.1;
+  }
+  .invoice-logo-brand .company-sub {
+    font-size: 9pt;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+
+  .invoice-information { text-align: left; min-width: 62mm; }
+  .invoice-information .doc-title {
+    font-size: 15pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #0f172a;
+    text-align: right;
+    margin-bottom: 10px;
+  }
+  .invoice-information p {
+    font-size: 10pt;
+    color: #6b7280;
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 2px 0;
+  }
+  .invoice-information b { color: #929292; font-weight: 700; }
+  .invoice-information span { color: #0f172a; font-weight: 700; text-align: right; }
+
+  .rule { border: 0; border-top: 2px solid #0f172a; margin: 12px 0 0; }
+
+  /* ── Parties: From (consignor) / To (consignee) ─────────── */
+  .invoice-head {
+    display: flex;
+    gap: 24px;
+    margin-top: 22px;
+  }
+  .invoice-head .head { width: 100%; }
+  .invoice-head .client-data { text-align: right; }
+  .party-label {
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #929292;
+    margin-bottom: 5px;
+  }
+  .party-name {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.45;
+  }
+  .party-loc {
+    font-size: 9.5pt;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+  .party-entry + .party-entry { margin-top: 6px; }
+
+  /* ── Shipment meta grid ─────────────────────────────────── */
+  .shipment-meta {
+    margin-top: 22px;
+    border: 1px solid #dcdcdc;
+    border-radius: 3px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .shipment-meta .cell {
+    padding: 8px 12px;
+    border-right: 1px solid #ededed;
+    border-bottom: 1px solid #ededed;
+    min-width: 0;
+  }
+  .shipment-meta .cell:nth-child(3n) { border-right: 0; }
+  .shipment-meta .cell:nth-last-child(-n+3) { border-bottom: 0; }
+  .shipment-meta .lbl {
+    display: block;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #929292;
+    margin-bottom: 2px;
+  }
+  .shipment-meta .val {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .shipment-meta .val .sub { font-weight: 400; color: #6b7280; }
+
+  /* ── Goods & freight table ──────────────────────────────── */
+  .invoice-body { margin-top: 24px; }
+  .section-caption {
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6b7280;
+    margin-bottom: 8px;
+  }
+  table.items {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  table.items thead tr th {
+    font-size: 9pt;
+    font-weight: 700;
+    border: 1px solid #dcdcdc;
+    text-align: left;
+    padding: 8px 9px;
+    background-color: #eeeeee;
+    color: #111827;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  table.items tbody tr td {
+    font-size: 10pt;
+    border: 1px solid #dcdcdc;
+    text-align: left;
+    padding: 8px 9px;
+    background-color: #fff;
+    color: #1f2937;
+    vertical-align: top;
+  }
+  table.items tbody tr:nth-child(even) td { background-color: #fafafa; }
+  table.items .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.items .mid { text-align: center; }
+  table.items .desc { font-weight: 700; color: #0f172a; }
+  table.items .desc small { display: block; font-weight: 400; color: #6b7280; font-size: 8.5pt; margin-top: 2px; }
+  table.items .num small { display: block; font-weight: 400; color: #6b7280; font-size: 8pt; margin-top: 2px; white-space: nowrap; }
+  table.items tbody tr { page-break-inside: avoid; }
+  table.items thead { display: table-header-group; }
+
+  /* ── Totals ─────────────────────────────────────────────── */
+  .flex-table { display: flex; margin-top: 6px; }
+  .flex-table .spacer { width: 55%; }
+  .flex-table .totals { width: 45%; }
+  table.table-subtotal {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 4px;
+  }
+  table.table-subtotal tbody tr td {
+    font-size: 10pt;
+    border-bottom: 1px solid #dcdcdc;
+    text-align: left;
+    padding: 7px 9px;
+    color: #374151;
+  }
+  table.table-subtotal tbody tr td:nth-child(2) { text-align: right; font-weight: 700; color: #0f172a; }
+  .invoice-total-amount { margin-top: 10px; }
+  .invoice-total-amount p {
+    font-weight: 800;
+    color: #0f172a;
+    text-align: right;
+    font-size: 12.5pt;
+  }
+
+  /* ── Remarks ────────────────────────────────────────────── */
+  .remarks {
+    margin-top: 24px;
+    font-size: 10pt;
+    color: #374151;
+    line-height: 1.5;
+  }
+  .remarks .lbl {
+    display: block;
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #929292;
+    margin-bottom: 3px;
+  }
+
+  /* ── Signatures ─────────────────────────────────────────── */
+  .signs {
+    margin-top: auto;
+    padding-top: 26px;
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    page-break-inside: avoid;
+  }
+  .sign { width: 45%; text-align: center; }
+  .sign .sign-area {
+    height: 20mm;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .sign .sign-area img { max-height: 18mm; max-width: 55mm; object-fit: contain; }
+  .sign .sign-line {
+    border-top: 1px solid #9ca3af;
+    padding-top: 6px;
+    font-size: 9.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #4b5563;
+  }
+
+  /* ── Footer note ────────────────────────────────────────── */
+  .invoice-footer {
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+  }
+  .invoice-footer .risk {
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6b7280;
+  }
+  .invoice-footer p { font-size: 8pt; color: #9ca3af; margin-top: 4px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<%
+  const dash = '—';
+  const has = (v) => v && String(v).trim() !== '' && v !== dash;
+  const money = (v) => {
+    const s = (v == null ? '' : String(v)).trim();
+    return (!s || s === '-' || s === dash) ? '' : s;
+  };
+  const parseNum = (v) => {
+    const s = money(v);
+    if (!s) return null;
+    const n = Number(s.replace(/[^0-9.\-]/g, ''));
+    return Number.isFinite(n) ? n : null;
+  };
+  const inr = (n) => '\u20B9' + Number(n).toLocaleString('en-IN');
+
+  const rows = (goodsRows || []).filter((r) => !r.isFiller);
+
+  const pickupPoints = (consignors || []).filter((p) => has(p.consignorName) || has(p.locationName));
+  const deliveryPoints = (consignees || []).filter((d) => has(d.consigneeName) || has(d.locationName));
+
+  let totalFreightSum = 0, hasFreight = false;
+  let paidSum = 0, hasPaid = false;
+  let balSum = 0, hasBal = false;
+  rows.forEach((r) => {
+    const tf = parseNum(r.totalFreight); if (tf != null) { totalFreightSum += tf; hasFreight = true; }
+    const pd = parseNum(r.freightPaid); if (pd != null) { paidSum += pd; hasPaid = true; }
+    const pb = parseNum(r.freightPayable);
+    if (pb != null) { balSum += pb; hasBal = true; }
+    else if (tf != null && pd != null) { balSum += (tf - pd); hasBal = true; }
+  });
+%>
+<div class="invoice">
+
+  <!-- Top: brand + memo info -->
+  <div class="invoice-top">
+    <div class="invoice-logo-brand">
+      <% if (images && images.logoRight) { %>
+        <img src="<%= images.logoRight %>" alt="Muizaa Logistics" />
+      <% } else { %>
+        <h2>Muizaa Logistics</h2>
+      <% } %>
+      <div class="company-sub">
+        1-21/3, NH-44, Panchalingala, Kurnool, Andhra Pradesh<br />
+        Ph: +91 91882 87695 &nbsp;&bull;&nbsp; GSTIN: 37AJOPV1603N1ZL
+      </div>
+    </div>
+    <div class="invoice-information">
+      <div class="doc-title">Goods Dispatch Memo</div>
+      <p><b>Memo No.</b><span><%= gdmNumber || dash %></span></p>
+      <p><b>Booking ID</b><span><%= bookingId || dash %></span></p>
+      <p><b>Date</b><span><%= generatedDate %></span></p>
+      <% if (has(invoiceNumber)) { %>
+        <p><b>Invoice No.</b><span><%= invoiceNumber %></span></p>
+      <% } %>
+    </div>
+  </div>
+  <hr class="rule" />
+
+  <!-- Parties -->
+  <div class="invoice-head">
+    <div class="head client-info">
+      <div class="party-label">From (Consignor)</div>
+      <% if (pickupPoints.length) { pickupPoints.forEach(function (p) { %>
+        <div class="party-entry">
+          <div class="party-name"><%= has(p.consignorName) ? p.consignorName : dash %></div>
+          <% if (has(p.locationName)) { %><div class="party-loc"><%= p.locationName %></div><% } %>
+        </div>
+      <% }); } else { %>
+        <div class="party-entry"><div class="party-name"><%= dash %></div></div>
+      <% } %>
+    </div>
+    <div class="head client-data">
+      <div class="party-label">To (Consignee)</div>
+      <% if (deliveryPoints.length) { deliveryPoints.forEach(function (d) { %>
+        <div class="party-entry">
+          <div class="party-name"><%= has(d.consigneeName) ? d.consigneeName : dash %></div>
+          <% if (has(d.locationName)) { %><div class="party-loc"><%= d.locationName %></div><% } %>
+        </div>
+      <% }); } else { %>
+        <div class="party-entry"><div class="party-name"><%= dash %></div></div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Shipment meta -->
+  <div class="shipment-meta">
+    <div class="cell">
+      <span class="lbl">Vehicle No</span>
+      <span class="val"><%= truckNumber || dash %></span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Driver</span>
+      <span class="val"><%= driverName || dash %><% if (has(driverNumber)) { %> <span class="sub">&bull; <%= driverNumber %></span><% } %></span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Owner</span>
+      <span class="val"><%= truckOwnerName || dash %><% if (has(truckOwnerNumber)) { %> <span class="sub">&bull; <%= truckOwnerNumber %></span><% } %></span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Transporter</span>
+      <span class="val"><%= transporterName || dash %></span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Transporter Ph</span>
+      <span class="val"><%= has(transporterPhone) ? transporterPhone : dash %></span>
+    </div>
+    <div class="cell">
+      <span class="lbl">Dispatch Date</span>
+      <span class="val"><%= generatedDate %></span>
+    </div>
+  </div>
+
+  <!-- Goods & freight -->
+  <div class="invoice-body">
+    <div class="section-caption">Goods &amp; Freight Details</div>
+    <table class="items">
+      <thead>
+        <tr>
+          <th style="width:5%">#</th>
+          <th style="width:31%">Description</th>
+          <th style="width:14%" class="mid">Articles</th>
+          <th style="width:14%" class="num">Weight</th>
+          <th style="width:12%" class="num">Rate / MT</th>
+          <th style="width:12%" class="num">Freight (&#8377;)</th>
+          <th style="width:12%" class="num">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(function (row, i) { %>
+          <tr>
+            <td class="mid"><%= i + 1 %></td>
+            <td class="desc"><%= has(row.description) ? row.description : dash %></td>
+            <td class="mid"><%= has(row.articles) ? row.articles : dash %></td>
+            <td class="num"><%= has(row.weight) ? row.weight : dash %></td>
+            <td class="num"><%= money(row.ratePerMt) || dash %></td>
+            <td class="num">
+              <%= money(row.totalFreight) || dash %>
+              <% if (money(row.freightPaid)) { %><small>Paid <%= money(row.freightPaid) %></small><% } %>
+            </td>
+            <td class="num"><%= money(row.freightPayable) || dash %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <% if (hasFreight || hasPaid || hasBal) { %>
+      <div class="flex-table">
+        <div class="spacer"></div>
+        <div class="totals">
+          <table class="table-subtotal">
+            <tbody>
+              <% if (hasFreight) { %>
+                <tr><td>Total Freight</td><td><%= inr(totalFreightSum) %></td></tr>
+              <% } %>
+              <% if (hasPaid) { %>
+                <tr><td>Freight Paid</td><td><%= inr(paidSum) %></td></tr>
+              <% } %>
+            </tbody>
+          </table>
+          <% if (hasBal) { %>
+            <div class="invoice-total-amount">
+              <p>Balance : <%= inr(balSum) %></p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Remarks -->
+  <% if (has(goodsRemark)) { %>
+    <div class="remarks">
+      <span class="lbl">Remarks</span>
+      <%= goodsRemark %>
+    </div>
+  <% } %>
+
+  <!-- Signatures -->
+  <div class="signs">
+    <div class="sign">
+      <div class="sign-area"></div>
+      <div class="sign-line">Driver Signature</div>
+    </div>
+    <div class="sign">
+      <div class="sign-area">
+        <% if (images && images.companySignature) { %>
+          <img src="<%= images.companySignature %>" alt="Authorised Signatory" />
+        <% } %>
+      </div>
+      <div class="sign-line">For Muizaa Logistics</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="invoice-footer">
+    <div class="risk">Goods dispatched entirely at owner's / carrier's risk</div>
+    <p>Muizaa Logistics &bull; 1-21/3, NH-44, Panchalingala, Kurnool, Andhra Pradesh &bull; GSTIN: 37AJOPV1603N1ZL</p>
+  </div>
+
+</div>
+</body>
+</html>

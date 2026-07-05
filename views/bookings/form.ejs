@@ -22,7 +22,7 @@
 <% } %>
 
 <form method="POST" action="<%= formAction %>" id="bookingForm">
-  <%- include('../partials/booking-sections', { booking: b, readOnly: ro, editable: !ro }) %>
+  <%- include('../partials/booking-sections', { booking: b, readOnly: ro, editable: !ro, isEdit: isEdit }) %>
 
   <% if (!ro) { %>
     <div class="d-flex gap-2 mt-4">
@@ -33,6 +33,109 @@
     </div>
   <% } %>
 </form>
+
+<!-- Transporter create modal -->
+<div class="modal fade" id="transporterModal" tabindex="-1" aria-labelledby="transporterModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="transporterModalLabel">New Transporter</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="transporterModalError" class="alert alert-danger d-none" role="alert"></div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="newTransporterName">Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newTransporterName" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="newTransporterPhone">Phone Number</label>
+            <input type="text" class="form-control" id="newTransporterPhone">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="newTransporterAddress">Address</label>
+            <textarea class="form-control" id="newTransporterAddress" rows="2"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="newTransporterRoutes">Operating Routes</label>
+            <textarea class="form-control" id="newTransporterRoutes" rows="2" placeholder="e.g. Mumbai – Pune – Bangalore"></textarea>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="newTransporterBank">Bank Name</label>
+            <input type="text" class="form-control" id="newTransporterBank">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="newTransporterAccount">Account Number</label>
+            <input type="text" class="form-control" id="newTransporterAccount">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="newTransporterIfsc">IFSC</label>
+            <input type="text" class="form-control" id="newTransporterIfsc">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="newTransporterNotes">Notes</label>
+            <textarea class="form-control" id="newTransporterNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveTransporterBtn">
+          <i class="bi bi-check-lg me-1"></i> Save Transporter
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Truck create modal -->
+<div class="modal fade" id="truckModal" tabindex="-1" aria-labelledby="truckModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="truckModalLabel">New Truck</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="truckModalError" class="alert alert-danger d-none" role="alert"></div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="newTruckNumber">Truck Number <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newTruckNumber" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="newTruckCapacity">Capacity (Kgs/Tons) <span class="text-danger">*</span></label>
+            <input type="number" step="0.01" min="0" class="form-control" id="newTruckCapacity" required>
+          </div>
+          <div class="col-12"><hr class="my-1"><small class="text-muted">Default Driver &amp; Owner (optional)</small></div>
+          <div class="col-md-6">
+            <label class="form-label" for="newTruckDriverName">Driver Name</label>
+            <input type="text" class="form-control" id="newTruckDriverName">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="newTruckDriverNumber">Driver Number</label>
+            <input type="text" class="form-control" id="newTruckDriverNumber">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="newTruckOwnerName">Owner Name</label>
+            <input type="text" class="form-control" id="newTruckOwnerName">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="newTruckOwnerNumber">Owner Number</label>
+            <input type="text" class="form-control" id="newTruckOwnerNumber">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveTruckBtn">
+          <i class="bi bi-check-lg me-1"></i> Save Truck
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="/js/autocomplete.js"></script>
 <script src="/js/booking-form.js"></script>

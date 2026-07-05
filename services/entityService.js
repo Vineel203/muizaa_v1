@@ -13,13 +13,19 @@ const ENTITY_CONFIG = {
     repo: 'truckRepository',
     label: 'Truck',
     nameField: 'number',
-    extraFields: ['capacity'],
+    extraFields: [
+      'capacity',
+      'defaultDriverName',
+      'defaultDriverNumber',
+      'defaultOwnerName',
+      'defaultOwnerNumber',
+    ],
   },
   transporter: {
     repo: 'transporterRepository',
     label: 'Transporter',
     nameField: 'name',
-    extraFields: [],
+    extraFields: ['phoneNumber', 'address', 'operatingRoutes', 'notes', 'bankName', 'accountNumber', 'ifsc'],
   },
   consignor: {
     repo: 'consignorRepository',
