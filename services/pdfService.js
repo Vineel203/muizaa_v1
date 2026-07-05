@@ -28,19 +28,21 @@ async function resolveLaunchOptions() {
 
   // Cloud Run / Linux production — bundled serverless Chromium
   if (process.platform === 'linux') {
-    const chromium = require('@sparticuz/chromium');
-    if (typeof chromium.setGraphicsMode === 'function') {
-      chromium.setGraphicsMode = false;
+    const chromiumModule = require('@sparticuz/chromium');
+    const Chromium = chromiumModule.default || chromiumModule;
+
+    if (typeof Chromium.setGraphicsMode !== 'undefined') {
+      Chromium.setGraphicsMode = false;
     }
 
-    const executablePath = await chromium.executablePath();
+    const executablePath = await Chromium.executablePath();
     if (!executablePath || !fs.existsSync(executablePath)) {
       throw new Error('Serverless Chromium binary not found for PDF generation');
     }
 
     const args = typeof puppeteerCore.defaultArgs === 'function'
-      ? puppeteerCore.defaultArgs({ args: [...chromium.args, ...SANDBOX_ARGS], headless: true })
-      : [...chromium.args, ...SANDBOX_ARGS];
+      ? puppeteerCore.defaultArgs({ args: [...Chromium.args, ...SANDBOX_ARGS], headless: true })
+      : [...Chromium.args, ...SANDBOX_ARGS];
 
     return {
       executablePath,
