@@ -17,6 +17,23 @@ const SYSTEM_CHROME_PATHS = [
 
 const SANDBOX_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
 
+let sparticuzChromiumPromise;
+
+async function loadSparticuzChromium() {
+  if (!sparticuzChromiumPromise) {
+    sparticuzChromiumPromise = import('@sparticuz/chromium').then((mod) => {
+      const Chromium = mod.default ?? mod;
+      if (typeof Chromium.executablePath !== 'function') {
+        throw new Error(
+          `@sparticuz/chromium failed to load (executablePath is ${typeof Chromium.executablePath})`
+        );
+      }
+      return Chromium;
+    });
+  }
+  return sparticuzChromiumPromise;
+}
+
 async function resolveLaunchOptions() {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     return {
@@ -26,14 +43,10 @@ async function resolveLaunchOptions() {
     };
   }
 
-  // Cloud Run / Linux production — bundled serverless Chromium
+  // Cloud Run / Linux production — bundled serverless Chromium (ESM package)
   if (process.platform === 'linux') {
-    const chromiumModule = require('@sparticuz/chromium');
-    const Chromium = chromiumModule.default || chromiumModule;
-
-    if (typeof Chromium.setGraphicsMode !== 'undefined') {
-      Chromium.setGraphicsMode = false;
-    }
+    const Chromium = await loadSparticuzChromium();
+    Chromium.setGraphicsMode = false;
 
     const executablePath = await Chromium.executablePath();
     if (!executablePath || !fs.existsSync(executablePath)) {
