@@ -125,10 +125,12 @@ class PdfService {
     if (shouldUseGotenbergIam()) {
       const auth = new GoogleAuth();
       const client = await auth.getIdTokenClient(baseUrl);
-      const authHeaders = await client.getRequestHeaders(baseUrl);
-      if (authHeaders.Authorization) {
-        headers.Authorization = authHeaders.Authorization;
+      const { headers: authHeaders } = await client.getRequestMetadataAsync();
+      const authorization = authHeaders.get('authorization');
+      if (!authorization) {
+        throw new Error('Failed to obtain Cloud Run ID token for Gotenberg');
       }
+      headers.Authorization = authorization;
     }
 
     const response = await fetch(url, {
